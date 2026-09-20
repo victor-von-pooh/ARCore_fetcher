@@ -212,6 +212,12 @@
 </ol>
 
 <div class="note">
+  <p><strong>最初のビルドで <code>Incompatible Gradle JVM version</code> が出たら。</strong>
+  Android Studio が Gradle の実行に選んだ JDK が新しすぎる、という意味です。
+  よく出るので驚かないでください。直し方はステップ 9 の表の 1 行目にあります。</p>
+</div>
+
+<div class="note">
   <p>ARCore 未導入の端末では、起動時に
   <strong>Google Play Services for AR</strong> のインストールを促されます。
   画面の指示に従って入れてください。これは Google 製の公式コンポーネントです。</p>
@@ -295,6 +301,18 @@ USB でファイル転送しても取り出せますが、共有シートのほ�
     <td>Run ボタンの横に端末が出てこない</td>
     <td>ケーブルがデータ転送対応か確認。USB デバッグの許可ダイアログを見落としていないか。
       別の USB ポートも試す。</td>
+  </tr>
+  <tr>
+    <td><code>Incompatible Gradle JVM version</code><br>
+      （<em>The project's Gradle version 8.9 is incompatible with the Gradle JVM version …</em>）</td>
+    <td>Gradle を動かす JDK が新しすぎます。プロジェクトのコードは無関係で、
+      ビルドが始まる前に止まっています。<br>
+      Build Output に出ている
+      <strong>Apply compatible Gradle JDK configuration and sync</strong> を押せば直ります。<br>
+      手動なら <strong>Settings → Build, Execution, Deployment → Build Tools → Gradle
+      → Gradle JDK</strong> を、Android Studio 同梱の JBR
+      （<code>jbr-21</code>／「Android Studio default JDK」）に変えて Sync。
+      候補に無ければ <strong>Download JDK…</strong> から <strong>17</strong> を選ぶ。</td>
   </tr>
   <tr>
     <td>Gradle sync が失敗する</td>
