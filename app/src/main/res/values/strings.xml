@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARCore fetcher</string>
+
+    <string name="shutter">撮影</string>
+    <string name="finish">書き出し</string>
+
+    <string name="status_idle">セッション開始待ち</string>
+    <string name="status_frames">%1$d 枚（TRACKING %2$d）</string>
+
+    <string name="msg_camera_permission_required">カメラ権限がないと撮影できません。</string>
+    <string name="msg_arcore_unavailable">この端末は ARCore に対応していません。</string>
+    <string name="msg_arcore_needs_update">Google Play Services for AR の更新が必要です。</string>
+    <string name="msg_session_failed">ARCore セッションを開始できませんでした: %1$s</string>
+    <string name="msg_waiting_tracking">端末をゆっくり動かしてトラッキングを開始してください。</string>
+    <string name="msg_no_frames">まだ 1 枚も撮影していません。</string>
+    <string name="msg_writing">書き出し中…</string>
+    <string name="msg_write_failed">書き出しに失敗しました: %1$s</string>
+    <string name="msg_write_done">%1$s を書き出しました。</string>
+
+    <string name="share_title">撮影データを共有</string>
+</resources>

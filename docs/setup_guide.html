@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ARCore fetcher セットアップ手順</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1b1f24;
+    --muted: #5c6773;
+    --line: #dfe3e8;
+    --accent: #1f6feb;
+    --code-bg: #f4f6f8;
+    --warn-bg: #fff8e6;
+    --warn-line: #e3b341;
+    --step-bg: #eef3fb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161b;
+      --fg: #e6e9ed;
+      --muted: #9aa5b1;
+      --line: #2b323b;
+      --accent: #58a6ff;
+      --code-bg: #1b2027;
+      --warn-bg: #2a2314;
+      --warn-line: #9e7b1f;
+      --step-bg: #1a222e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161b;
+    --fg: #e6e9ed;
+    --muted: #9aa5b1;
+    --line: #2b323b;
+    --accent: #58a6ff;
+    --code-bg: #1b2027;
+    --warn-bg: #2a2314;
+    --warn-line: #9e7b1f;
+    --step-bg: #1a222e;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85;
+    font-size: 16px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 16px 96px; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 40px; }
+  h1 { font-size: 1.75rem; line-height: 1.4; margin: 0 0 8px; }
+  .lede { color: var(--muted); margin: 0; }
+
+  h2 {
+    font-size: 1.15rem;
+    margin: 48px 0 12px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  h2 .n {
+    flex: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--step-bg);
+    border-radius: 999px;
+    padding: 2px 11px;
+    letter-spacing: .04em;
+  }
+  h3 { font-size: 1rem; margin: 28px 0 8px; }
+  p, li { margin: 8px 0; }
+  ul, ol { padding-left: 1.4em; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 2px 5px;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; }
+
+  .note {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn-line);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 20px 0;
+  }
+  .note p:first-child { margin-top: 0; }
+  .note p:last-child { margin-bottom: 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 0.925rem; }
+  th, td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+
+  .toc { background: var(--code-bg); border-radius: 8px; padding: 16px 20px; margin-bottom: 8px; }
+  .toc ol { margin: 0; padding-left: 1.3em; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>ARCore fetcher セットアップ手順</h1>
+  <p class="lede">Android 端末で多視点画像とカメラ姿勢を撮影し、データを取り出すまで。<br>
+  Android の開発経験がなくても進められるように書いてあります。</p>
+</header>
+
+<div class="toc">
+  <ol>
+    <li><a href="#s1">必要なもの</a></li>
+    <li><a href="#s2">Android Studio を入れる</a></li>
+    <li><a href="#s3">プロジェクトを開く</a></li>
+    <li><a href="#s4">端末を開発者モードにする</a></li>
+    <li><a href="#s5">端末をつないでビルドする</a></li>
+    <li><a href="#s6">撮影する</a></li>
+    <li><a href="#s7">データを取り出す</a></li>
+    <li><a href="#s8">中身を確認する</a></li>
+    <li><a href="#s9">うまくいかないとき</a></li>
+  </ol>
+</div>
+
+<h2 id="s1"><span class="n">1</span> 必要なもの</h2>
+
+<table>
+  <tr><th>もの</th><th>条件</th></tr>
+  <tr>
+    <td>Android 端末</td>
+    <td>ARCore 対応機種であること。Google の
+      <a href="https://developers.google.com/ar/devices">ARCore supported devices</a>
+      に載っているか確認してください。Android 7.0 (API 24) 以上。</td>
+  </tr>
+  <tr><td>USB ケーブル</td><td>充電専用でなく<strong>データ転送できるもの</strong>。ここでつまずく人が多いです。</td></tr>
+  <tr><td>PC</td><td>Windows / macOS / Linux のいずれか。空き容量 10GB 程度。</td></tr>
+  <tr><td>ネット接続</td><td>初回ビルドで数 GB ダウンロードします。</td></tr>
+</table>
+
+<h2 id="s2"><span class="n">2</span> Android Studio を入れる</h2>
+
+<ol>
+  <li><a href="https://developer.android.com/studio">developer.android.com/studio</a> から
+    Android Studio をダウンロードしてインストールします。</li>
+  <li>初回起動時にセットアップウィザードが出ます。<strong>Standard</strong> を選んで進めれば、
+    必要な Android SDK と JDK が一緒に入ります。</li>
+</ol>
+
+<div class="note">
+  <p>このアプリは <strong>JDK 17</strong> でビルドします。Android Studio に同梱の JDK
+  （JetBrains Runtime）で足りるので、別途 Java を入れる必要はありません。</p>
+</div>
+
+<h2 id="s3"><span class="n">3</span> プロジェクトを開く</h2>
+
+<ol>
+  <li>Android Studio の最初の画面で <strong>Open</strong> を選びます。</li>
+  <li>この <code>ARCore_fetcher</code> フォルダ（<code>settings.gradle.kts</code> がある階層）を選びます。
+    中の <code>app</code> フォルダではありません。</li>
+  <li>右下に <em>Gradle sync</em> の進捗が出ます。初回は数分〜十数分かかります。
+    <em>Sync finished</em> になれば成功です。</li>
+</ol>
+
+<div class="note">
+  <p><strong>Gradle wrapper が見つからない、と言われたら。</strong>
+  このリポジトリには <code>gradle-wrapper.jar</code> を含めていません。
+  通常は Android Studio が自動生成しますが、しなかった場合は
+  Gradle をインストールしてから、プロジェクトのルートで次を実行してください。</p>
+  <pre><code>gradle wrapper --gradle-version 8.9</code></pre>
+</div>
+
+<h2 id="s4"><span class="n">4</span> 端末を開発者モードにする</h2>
+
+<p>端末側の操作です。メーカーによって文言が少し違います。</p>
+
+<ol>
+  <li><strong>設定 → デバイス情報</strong> を開く</li>
+  <li><strong>ビルド番号</strong> を 7 回連続でタップする
+    （「これでデベロッパーになりました」と出ます）</li>
+  <li><strong>設定 → システム → 開発者向けオプション</strong> を開く</li>
+  <li><strong>USB デバッグ</strong> を ON にする</li>
+</ol>
+
+<h2 id="s5"><span class="n">5</span> 端末をつないでビルドする</h2>
+
+<ol>
+  <li>USB ケーブルで端末と PC をつなぎます。</li>
+  <li>端末に「USB デバッグを許可しますか？」が出たら <strong>許可</strong>。
+    「このパソコンからのUSBデバッグを常に許可する」にチェックを入れておくと楽です。</li>
+  <li>Android Studio の上部、実行ボタン（▶）の左にあるドロップダウンに端末名が出ることを確認します。</li>
+  <li><strong>▶ Run</strong> を押します。ビルドが走り、アプリが端末にインストールされて起動します。</li>
+  <li>アプリが<strong>カメラの使用許可</strong>を求めるので許可します。</li>
+</ol>
+
+<div class="note">
+  <p>ARCore 未導入の端末では、起動時に
+  <strong>Google Play Services for AR</strong> のインストールを促されます。
+  画面の指示に従って入れてください。これは Google 製の公式コンポーネントです。</p>
+</div>
+
+<h2 id="s6"><span class="n">6</span> 撮影する</h2>
+
+<p>アプリを起動するとカメラ映像が出ます。画面上部に現在の状態が表示されます。</p>
+
+<ol>
+  <li>端末を持って<strong>ゆっくり左右に動かします</strong>。
+    上部の表示が <code>PAUSED</code> から <code>TRACKING</code> に変われば準備完了です。
+    このタイミングで、姿勢の基準点（root Anchor）が自動で置かれます。</li>
+  <li><strong>撮影</strong> ボタンで 1 枚ずつ撮ります。</li>
+  <li>対象のまわりを<strong>回り込みながら</strong>、視点を変えて撮ります。
+    目安は 30〜100 枚。同じ場所から連写しても情報は増えません。</li>
+  <li>撮り終わったら <strong>書き出し</strong> ボタンを押します。</li>
+</ol>
+
+<h3>うまく撮るコツ</h3>
+<ul>
+  <li>明るい場所で撮る。暗いとトラッキングが外れます</li>
+  <li>速く振らない。ブレるとトラッキングが外れます</li>
+  <li>隣り合う写真が 7 割くらい重なるように、少しずつ動かす</li>
+  <li>無地の壁や鏡、透明なものは苦手です</li>
+</ul>
+
+<div class="note">
+  <p><code>TRACKING</code> が外れた状態（<code>PAUSED</code>）で撮った写真も、
+  <strong>捨てずにそのまま記録されます</strong>。
+  どれを使うかは撮影後に選べるようにしてあるので、気にせず撮り続けてかまいません。</p>
+</div>
+
+<h2 id="s7"><span class="n">7</span> データを取り出す</h2>
+
+<p><strong>書き出し</strong> を押すと、撮影データが ZIP にまとめられ、
+Android の共有シートが開きます。Google ドライブ、メール、AirDrop など、
+端末に入っている転送手段で PC に送ってください。</p>
+
+<p>ZIP の中身はこうなっています。</p>
+
+<pre><code>capture_20260920T103104/
+├── transforms.json
+└── images/
+    ├── 000000812345678901.jpg
+    ├── 000000812378901234.jpg
+    └── ...</code></pre>
+
+<p><code>transforms.json</code> に、各写真のカメラ位置・向き・レンズのパラメータが入っています。
+<strong>写真の EXIF ではなく、この JSON が唯一の正しい情報源</strong>です。</p>
+
+<p>ファイルは端末内の <code>Android/data/&lt;アプリのパッケージ名&gt;/files/captures/</code> にも残ります。
+USB でファイル転送しても取り出せますが、共有シートのほうが簡単です。</p>
+
+<h2 id="s8"><span class="n">8</span> 中身を確認する</h2>
+
+<p>PC に取り出した ZIP を展開し、撮れているかどうかをざっと確かめます。
+<code>transforms.json</code> はテキストファイルなので、そのままエディタで開けます。</p>
+
+<ul>
+  <li><code>frames</code> の数が、撮った枚数と合っているか</li>
+  <li><code>images/</code> の中のファイル数が <code>frames</code> の数と同じか</li>
+  <li><code>w</code> と <code>h</code> が、実際の写真の解像度と一致しているか
+    （写真をプレビューで開けばピクセル数が見られます）</li>
+  <li><code>tracking_state</code> が <code>TRACKING</code> のフレームがどれくらいあるか。
+    ほとんど <code>PAUSED</code> なら、明るい場所で撮り直したほうがよい結果になります</li>
+</ul>
+
+<div class="note">
+  <p><strong>解像度だけは必ず見てください。</strong>
+  <code>w</code> / <code>h</code> と実際の写真のピクセル数が食い違っていると、
+  レンズのパラメータ（<code>fl_x</code> など）も一緒にずれています。
+  この場合はアプリ側の不具合なので、実際の解像度と JSON の値を控えておいてください。</p>
+</div>
+
+<h2 id="s9"><span class="n">9</span> うまくいかないとき</h2>
+
+<table>
+  <tr><th>症状</th><th>対処</th></tr>
+  <tr>
+    <td>Run ボタンの横に端末が出てこない</td>
+    <td>ケーブルがデータ転送対応か確認。USB デバッグの許可ダイアログを見落としていないか。
+      別の USB ポートも試す。</td>
+  </tr>
+  <tr>
+    <td>Gradle sync が失敗する</td>
+    <td>ネット接続を確認して <strong>File → Sync Project with Gradle Files</strong> をもう一度。
+      それでも直らなければ <strong>File → Invalidate Caches → Invalidate and Restart</strong>。</td>
+  </tr>
+  <tr>
+    <td>「この端末は ARCore に対応していません」</td>
+    <td>対応機種一覧に載っているか確認してください。非対応端末では動きません。</td>
+  </tr>
+  <tr>
+    <td>いつまでも <code>PAUSED</code> のまま</td>
+    <td>明るい場所へ移動し、模様のある面（机の木目、本棚など）に向けてゆっくり動かす。
+      真っ白な壁や暗い部屋では起動しません。</td>
+  </tr>
+  <tr>
+    <td>「まだ 1 枚も撮影していません」と出る</td>
+    <td>撮影ボタンを押す前に書き出しを押しています。先に何枚か撮ってください。</td>
+  </tr>
+  <tr>
+    <td>写真が思ったより粗い</td>
+    <td>端末が対応している CPU 画像の最大解像度を使っていますが、
+      機種によっては 640x480 止まりです。<code>transforms.json</code> の
+      <code>w</code> / <code>h</code> に、そのとき保存された解像度が入っています。</td>
+  </tr>
+</table>
+
+<footer>
+  書き出されるデータの形式は、リポジトリの <code>README.md</code> に説明があります。
+</footer>
+
+</div>
+</body>
+</html>
