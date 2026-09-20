@@ -190,8 +190,8 @@ app/src/main/java/com/example/arcorefetcher/
 
 ## 状態
 
-- **未コンパイル。** Android Studio での初回ビルドがまだ通っていない
-- **実機未検証。** 1 セッション撮って出力を確認するのが次の作業
+- **ビルドは通った。** 実機で起動し、カメラ映像の描画と `TRACKING` 到達まで確認済み
+- **撮影と書き出しは未検証。** 1 セッション撮って出力を確認するのが次の作業
 - Gradle Wrapper の JAR (`gradle/wrapper/gradle-wrapper.jar`) を含めていない。
   Android Studio が自動生成するが、失敗したら `gradle wrapper --gradle-version 8.9` で用意する
 

@@ -12,6 +12,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import com.example.arcorefetcher.capture.CaptureMeta
 import com.example.arcorefetcher.capture.CaptureSessionWriter
 import com.example.arcorefetcher.capture.CaptureSpec
@@ -78,6 +82,7 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applyWindowInsets()
 
         binding.surfaceView.apply {
             preserveEGLContextOnPause = true
@@ -92,6 +97,33 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         binding.finishButton.setOnClickListener {
             if (finishing) return@setOnClickListener
             finishRequested.set(true)
+        }
+    }
+
+    /**
+     * システムバーの裏までカメラ映像を描きつつ、UI がバーに隠れないようにする。
+     *
+     * targetSdk 35 以降は端から端まで描画するのが既定で、システムバーの領域を
+     * 自動では避けてくれない。そのままだと撮影ボタンがナビゲーションバーの
+     * 下に潜り込む。[WindowCompat.setDecorFitsSystemWindows] を false にして
+     * 全 API で挙動をそろえたうえで、隠れては困る 2 つのビューにだけ
+     * バーの高さ分の余白を足す。
+     */
+    private fun applyWindowInsets() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        // XML で指定した余白。インセットを足し込む前に控えておかないと、
+        // リスナーが複数回呼ばれるたびに余白が累積する。
+        val statusBasePadding = binding.statusText.paddingTop
+        val controlBasePadding = binding.controlBar.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            binding.statusText.updatePadding(top = statusBasePadding + bars.top)
+            binding.controlBar.updatePadding(bottom = controlBasePadding + bars.bottom)
+            insets
         }
     }
 

@@ -22,6 +22,7 @@
         tools:text="0 枚（TRACKING 0）" />
 
     <LinearLayout
+        android:id="@+id/controlBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"

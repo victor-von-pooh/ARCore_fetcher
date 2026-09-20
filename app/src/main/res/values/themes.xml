@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.ARCoreFetcher" parent="Theme.Material3.Dark.NoActionBar">
-        <item name="android:windowFullscreen">true</item>
+        <!--
+            カメラ映像を画面の端まで描くため、システムバーの裏まで描画する。
+            バーに隠れては困る UI には MainActivity.applyWindowInsets() で
+            余白を入れている。ここで windowFullscreen を使うと端末ごとに
+            挙動が割れるので使わない。
+        -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 </resources>
