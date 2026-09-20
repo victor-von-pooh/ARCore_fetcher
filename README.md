@@ -8,6 +8,10 @@ ARCore 端末で, 多視点画像とカメラ姿勢を撮影し, データの書
 ビルドから撮影までの手順は [docs/setup_guide.html](docs/setup_guide.html) にある
 （Android Studio を初めて使う人向け）。
 
+Kotlin と Android が初めての場合は、このリポジトリのコードを教材にした
+[docs/kotlin_guide.html](docs/kotlin_guide.html) がある。
+短いファイルから順に読み、章ごとに手を動かす構成。
+
 ---
 
 ## 出力

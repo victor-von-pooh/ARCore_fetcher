@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>このアプリで覚える Kotlin</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1b1f24;
+    --muted: #5c6773;
+    --line: #dfe3e8;
+    --accent: #1f6feb;
+    --code-bg: #f4f6f8;
+    --warn-bg: #fff8e6;
+    --warn-line: #e3b341;
+    --try-bg: #eef7f0;
+    --try-line: #4a9d63;
+    --step-bg: #eef3fb;
+    --file-fg: #6b7683;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161b; --fg: #e6e9ed; --muted: #9aa5b1; --line: #2b323b;
+      --accent: #58a6ff; --code-bg: #1b2027; --warn-bg: #2a2314; --warn-line: #9e7b1f;
+      --try-bg: #15241a; --try-line: #3f7d53; --step-bg: #1a222e; --file-fg: #8b96a3;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12161b; --fg: #e6e9ed; --muted: #9aa5b1; --line: #2b323b;
+    --accent: #58a6ff; --code-bg: #1b2027; --warn-bg: #2a2314; --warn-line: #9e7b1f;
+    --try-bg: #15241a; --try-line: #3f7d53; --step-bg: #1a222e; --file-fg: #8b96a3;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    line-height: 1.85; font-size: 16px;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 48px 16px 96px; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
+  h1 { font-size: 1.75rem; line-height: 1.4; margin: 0 0 8px; }
+  .lede { color: var(--muted); margin: 0; }
+
+  h2 {
+    font-size: 1.2rem; margin: 56px 0 14px; padding-top: 26px;
+    border-top: 1px solid var(--line); display: flex; align-items: baseline; gap: 12px;
+  }
+  h2 .n {
+    flex: none; font-size: 0.75rem; font-weight: 700; color: var(--accent);
+    background: var(--step-bg); border-radius: 999px; padding: 2px 11px; letter-spacing: .04em;
+  }
+  h3 { font-size: 1.02rem; margin: 32px 0 8px; }
+  h4 { font-size: 0.95rem; margin: 24px 0 6px; color: var(--muted); }
+  p, li { margin: 8px 0; }
+  ul, ol { padding-left: 1.4em; }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.875em; background: var(--code-bg); border-radius: 4px; padding: 2px 5px;
+  }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; line-height: 1.65; margin: 0 0 16px;
+  }
+  pre code { background: none; padding: 0; font-size: 0.85em; }
+  .file {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem; color: var(--file-fg); margin: 16px 0 4px; letter-spacing: .01em;
+  }
+  .file::before { content: "▸ "; }
+
+  .note, .try {
+    border-radius: 0 6px 6px 0; padding: 12px 16px; margin: 20px 0;
+  }
+  .note { background: var(--warn-bg); border-left: 3px solid var(--warn-line); }
+  .try  { background: var(--try-bg);  border-left: 3px solid var(--try-line); }
+  .try h4 { margin-top: 0; color: inherit; font-size: 0.95rem; }
+  .note p:first-child, .try p:first-child { margin-top: 0; }
+  .note p:last-child, .try p:last-child, .try ol:last-child, .try ul:last-child { margin-bottom: 0; }
+
+  details { margin: 10px 0 0; }
+  summary { cursor: pointer; color: var(--accent); font-size: 0.9rem; }
+  details[open] summary { margin-bottom: 8px; }
+
+  table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 0.9rem; }
+  th, td { border: 1px solid var(--line); padding: 7px 11px; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  td code { white-space: nowrap; }
+
+  .toc { background: var(--code-bg); border-radius: 8px; padding: 16px 22px; }
+  .toc ol { margin: 0; padding-left: 1.4em; }
+  .toc li { margin: 3px 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc .sub { color: var(--muted); font-size: 0.85em; }
+
+  footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>このアプリで覚える Kotlin</h1>
+  <p class="lede">ARCore_fetcher のソースコードを教材にして、Kotlin と Android を読み書きできるようになるための解説書。<br>
+  短いファイルから順に読み、章ごとに手を動かします。</p>
+</header>
+
+<h2 id="intro"><span class="n">はじめに</span></h2>
+
+<h3>この解説書が想定している読者</h3>
+
+<p><strong>プログラミング自体は初めてではないが、Kotlin と Android は初めて</strong>、という前提で書いています。
+「変数とは何か」「関数とは何か」は説明しません。
+そのかわり、<strong>Kotlin 特有の書き方</strong>と<strong>Android 特有の作法</strong>は、
+記号ひとつに至るまで省略せずに説明します。</p>
+
+<p>他の言語（Python など）を知っていると入りやすいので、ところどころ対比を入れています。
+知らなくても読めるように書いてあるので、対比の部分は飛ばしてかまいません。</p>
+
+<h3>なぜ「このアプリを教材にする」のか</h3>
+
+<p>文法だけを順番に覚えても、実際のコードは読めるようになりません。
+文法書に出てこない「なぜここでこう書くのか」が大半を占めるからです。</p>
+
+<p>このリポジトリのコードは全部で約 1,800 行、8 ファイルしかありません。
+しかも、ファイルごとに登場する文法がきれいに分かれています。
+<strong>短いファイルから順に読んでいくと、必要な文法が必要な順に出てくる</strong>ように並んでいます。
+この解説書はその順番に沿って進みます。</p>
+
+<h3>読む順番</h3>
+
+<table>
+  <tr><th>章</th><th>ファイル</th><th>行数</th><th>ここで覚えること</th></tr>
+  <tr><td>2</td><td><code>capture/Zip.kt</code></td><td>36</td><td><code>object</code>、関数、ラムダ、null 安全、文字列テンプレート</td></tr>
+  <tr><td>3</td><td><code>capture/PoseMath.kt</code></td><td>57</td><td>配列、単一式関数、<code>private</code></td></tr>
+  <tr><td>4</td><td><code>capture/CaptureModel.kt</code></td><td>123</td><td><code>data class</code>、デフォルト引数、null 許容型、定数</td></tr>
+  <tr><td>5</td><td><code>capture/YuvJpeg.kt</code></td><td>110</td><td>ループ、範囲、<code>require</code>、名前付き引数</td></tr>
+  <tr><td>6</td><td><code>capture/TransformsJson.kt</code></td><td>176</td><td><code>when</code>、<code>?.let</code>、コレクション操作</td></tr>
+  <tr><td>7</td><td><code>capture/CaptureSessionWriter.kt</code></td><td>149</td><td>クラス、<code>sealed class</code>、高階関数、スレッド</td></tr>
+  <tr><td>8</td><td><code>MainActivity.kt</code></td><td>484</td><td>継承、<code>override</code>、<code>lateinit</code>、スコープ関数、ライフサイクル</td></tr>
+  <tr><td>9</td><td><code>render/BackgroundRenderer.kt</code></td><td>165</td><td>（大半は OpenGL の話。Kotlin としては短く）</td></tr>
+</table>
+
+<div class="note">
+  <p><strong>いきなり <code>MainActivity.kt</code> を開かないこと。</strong>
+  484 行あって、このアプリで一番難しいファイルです。
+  ここから読み始めて挫折するのが、いちばんよくある失敗です。</p>
+</div>
+
+<h3>進め方</h3>
+
+<ol>
+  <li>まず <code>docs/setup_guide.html</code> の手順でアプリをビルドし、実際に動かす。
+    <strong>動くものを触ってから読む</strong>と、コードが何をしているのか想像しやすくなります</li>
+  <li>Android Studio で該当ファイルを開き、この解説書と並べて読む</li>
+  <li>各章末の「手を動かす」を実際にやる。<strong>読むだけでは書けるようになりません</strong></li>
+</ol>
+
+<div class="toc">
+  <ol>
+    <li><a href="#c0">道具に慣れる</a> <span class="sub">— Android Studio を読解の道具として使う</span></li>
+    <li><a href="#c1">Kotlin を読むための最小限</a> <span class="sub">— これだけ知れば読み始められる</span></li>
+    <li><a href="#c2">Zip.kt を読む</a> <span class="sub">— 36 行に詰まった Kotlin らしさ</span></li>
+    <li><a href="#c3">PoseMath.kt を読む</a> <span class="sub">— 配列と単一式関数</span></li>
+    <li><a href="#c4">CaptureModel.kt を読む</a> <span class="sub">— 型を自分で設計する</span></li>
+    <li><a href="#c5">YuvJpeg.kt を読む</a> <span class="sub">— ループと範囲</span></li>
+    <li><a href="#c6">TransformsJson.kt を読む</a> <span class="sub">— when と ?.let</span></li>
+    <li><a href="#c7">CaptureSessionWriter.kt を読む</a> <span class="sub">— クラス・sealed class・スレッド</span></li>
+    <li><a href="#c8">MainActivity.kt を読む</a> <span class="sub">— 全部が集まる場所</span></li>
+    <li><a href="#c9">BackgroundRenderer.kt を眺める</a></li>
+    <li><a href="#c10">自分で手を入れる</a> <span class="sub">— 易しい順に 6 題</span></li>
+  </ol>
+  <p style="margin:12px 0 0"><a href="#appendix-a">付録A 記号の読み方</a>　/　<a href="#appendix-b">付録B つまずいたときに</a></p>
+</div>
+
+<h2 id="c0"><span class="n">0</span> 道具に慣れる</h2>
+
+<p>Kotlin を覚える前に、Android Studio を<strong>読解の道具</strong>として使えるようにしておくと、
+以降の効率がまるで変わります。覚えるのは 4 つだけです。</p>
+
+<table>
+  <tr><th>やりたいこと</th><th>操作</th></tr>
+  <tr><td><strong>定義へ飛ぶ</strong>（この関数の中身は？）</td>
+      <td>関数名や型名を <code>Cmd</code>（Windows は <code>Ctrl</code>）を押しながらクリック</td></tr>
+  <tr><td><strong>戻る</strong></td><td><code>Cmd + [</code> / <code>Ctrl + Alt + ←</code></td></tr>
+  <tr><td><strong>ファイルを名前で開く</strong></td><td><code>Shift</code> を 2 回押して、ファイル名を打つ</td></tr>
+  <tr><td><strong>型を確かめる</strong></td><td>変数の上にカーソルを置いて <code>Ctrl + J</code>（Mac）／マウスを乗せる</td></tr>
+</table>
+
+<p>とくに <strong>定義へ飛ぶ</strong> が重要です。
+<code>Pose</code> や <code>File</code> のような知らない型が出てきたら、
+その場で飛んで何ができる型なのかを見る。この往復が読解そのものです。</p>
+
+<div class="note">
+  <p><strong>型が分からなくなったら、書かせて確かめる。</strong>
+  Kotlin は型を省略できますが（後述）、勉強中は省略しないほうが読めます。
+  <code>val x = ...</code> の <code>x</code> にカーソルを置いて
+  <code>Cmd + Shift + P</code> を押すと、推論された型が表示されます。</p>
+</div>
+
+<h2 id="c1"><span class="n">1</span> Kotlin を読むための最小限</h2>
+
+<p>ここだけは先に頭に入れておきます。逆に言うと、<strong>これ以外は出てきたときに覚えれば十分</strong>です。</p>
+
+<h3>1.1 <code>val</code> と <code>var</code></h3>
+
+<pre><code>val a = 10     // 再代入できない（定数のように扱う）
+var b = 10     // 再代入できる
+b = 20         // OK
+// a = 20      // コンパイルエラー</code></pre>
+
+<p><strong>Kotlin では <code>val</code> が既定</strong>です。
+このリポジトリのコードを検索してみると、<code>var</code> はごく少数しかありません。
+「後から変わる値」だけを <code>var</code> にし、それ以外は全部 <code>val</code> にします。</p>
+
+<p>これは好みの問題ではありません。
+<code>var</code> が少ないほど「この値はどこで書き換わるのか」を追う必要が減り、
+とくに複数のスレッドが絡むこのアプリでは、バグの数がそのまま減ります。</p>
+
+<h3>1.2 型は後ろに書く</h3>
+
+<pre><code>val name: String = "capture"
+val count: Int = 42
+val ratio: Float = 1.5f          // Float は末尾に f
+val ok: Boolean = true</code></pre>
+
+<p>右辺から型が分かるときは省略できます（<strong>型推論</strong>）。</p>
+
+<pre><code>val name = "capture"   // String だと分かるので書かなくてよい</code></pre>
+
+<p>ただし<strong>関数の引数と戻り値の型は省略できません</strong>。ここは必ず書きます。</p>
+
+<h3>1.3 関数</h3>
+
+<pre><code>fun add(a: Int, b: Int): Int {
+    return a + b
+}</code></pre>
+
+<p><code>fun</code> で始め、<code>引数名: 型</code> を並べ、<code>): 戻り値の型</code> と書きます。
+戻り値がないときは <code>: Unit</code> ですが、省略するのが普通です。</p>
+
+<pre><code>fun log(message: String) {     // 戻り値なし
+    println(message)
+}</code></pre>
+
+<h3>1.4 null とどう付き合うか（Kotlin の中心的な話）</h3>
+
+<p>Kotlin では、<strong>型は既定で null を入れられません</strong>。</p>
+
+<pre><code>val s: String = null      // コンパイルエラー
+val t: String? = null     // OK（? を付けた型だけが null を持てる）</code></pre>
+
+<p>これが Kotlin の最大の特徴です。
+「値があるかどうか分からない」ことが<strong>型に書いてある</strong>ので、
+うっかり null を触って落ちる、という事故がコンパイル時に止まります。</p>
+
+<p>null かもしれない値を扱う道具が 3 つあります。</p>
+
+<h4><code>?.</code> — null なら何もしない</h4>
+<pre><code>val n: Int? = s?.length      // s が null なら n も null。s.length は呼ばれない</code></pre>
+
+<h4><code>?:</code> — null ならこっちを使う（エルビス演算子）</h4>
+<pre><code>val n: Int = s?.length ?: 0  // s が null なら 0</code></pre>
+
+<p><code>?:</code> は横に倒すと顔文字（エルビス・プレスリーの前髪）に見えるので、この名前です。
+右側には <code>return</code> も書けて、この形がコード中に何度も出てきます。</p>
+
+<pre><code>val session = this.session ?: return   // session が null ならこの関数を抜ける</code></pre>
+
+<h4><code>!!</code> — null じゃないと断言する（使わない）</h4>
+<pre><code>val n: Int = s!!.length      // s が null なら実行時にクラッシュ</code></pre>
+
+<div class="note">
+  <p><strong><code>!!</code> はこのリポジトリで 1 回も使っていません。</strong>
+  書けてしまいますが、これを書いた瞬間に Kotlin の null 安全は無効になります。
+  <code>!!</code> を書きたくなったら、<code>?:</code> で早期 return するか、
+  そもそも null になりうる設計を直すのが正解です。</p>
+</div>
+
+<h3>1.5 文字列テンプレート</h3>
+
+<pre><code>val name = "capture"
+println("dir = $name")            // dir = capture
+println("len = ${name.length}")   // 式を埋めるときは ${ }</code></pre>
+
+<h3>1.6 コメント</h3>
+
+<pre><code>// 1 行コメント
+
+/* 複数行 */
+
+/**
+ * ドキュメントコメント（KDoc）。関数やクラスの前に書く。
+ * [Pose] のように角括弧で書くと、その型へのリンクになる。
+ */</code></pre>
+
+<p>このリポジトリでは、<strong>「なぜそう書いたか」をドキュメントコメントに書く</strong>方針にしています。
+「何をしているか」はコードを読めば分かるので書きません。
+読むときも、コメントは「理由が書いてある場所」だと思って読んでください。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <p>Android Studio で新しいファイルを作らず、<strong>Kotlin Playground</strong>（ブラウザで動く実行環境。
+  <a href="https://play.kotlinlang.org">play.kotlinlang.org</a>）を開いて、次を実行してみてください。</p>
+  <pre><code>fun main() {
+    val name: String? = null
+    println(name?.length)
+    println(name?.length ?: -1)
+    println("name = $name")
+}</code></pre>
+  <p>出力が <code>null</code> / <code>-1</code> / <code>name = null</code> になれば、1.4 と 1.5 は理解できています。</p>
+</div>
+
+<h2 id="c2"><span class="n">2</span> Zip.kt を読む</h2>
+
+<p>36 行で、このアプリで一番短いファイルです。
+やっていることは「ディレクトリを ZIP に固める」だけ。
+なのに、Kotlin らしい書き方がひととおり入っています。</p>
+
+<div class="file">app/src/main/java/com/example/arcorefetcher/capture/Zip.kt</div>
+<pre><code>package com.example.arcorefetcher.capture
+
+import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
+
+/** 撮影セッションのディレクトリを 1 つの ZIP にまとめる（共有シートで渡すため）。 */
+object Zip {
+
+    fun zipDirectory(dir: File, target: File): File {
+        ZipOutputStream(FileOutputStream(target).buffered()).use { zos -&gt;
+            zos.setLevel(1)
+            addRecursively(zos, dir, dir.name)
+        }
+        return target
+    }
+
+    private fun addRecursively(zos: ZipOutputStream, file: File, entryPath: String) {
+        if (file.isDirectory) {
+            zos.putNextEntry(ZipEntry("$entryPath/"))
+            zos.closeEntry()
+            file.listFiles()?.sortedBy { it.name }?.forEach {
+                addRecursively(zos, it, "$entryPath/${it.name}")
+            }
+            return
+        }
+        zos.putNextEntry(ZipEntry(entryPath))
+        file.inputStream().buffered().use { it.copyTo(zos) }
+        zos.closeEntry()
+    }
+}</code></pre>
+
+<h3>2.1 <code>package</code> と <code>import</code></h3>
+
+<p><code>package</code> はこのファイルが属する名前空間で、<strong>ディレクトリ構成と一致</strong>させます。
+<code>com/example/arcorefetcher/capture/</code> にあるファイルは
+<code>package com.example.arcorefetcher.capture</code> です。ここがずれるとビルドが通りません。</p>
+
+<p><code>import</code> は他の名前空間の型を短い名前で使うための宣言です。
+<code>import java.io.File</code> と書いておけば、以降 <code>java.io.File</code> ではなく <code>File</code> と書けます。</p>
+
+<div class="note">
+  <p>同じ package の中（たとえば <code>capture</code> パッケージ内の
+  <code>YuvJpeg</code> や <code>TransformsJson</code>）は <code>import</code> 不要で、そのまま使えます。
+  <code>CaptureSessionWriter.kt</code> が <code>YuvJpeg</code> を import なしで呼べているのはこのためです。</p>
+</div>
+
+<h3>2.2 <code>object</code> — インスタンスを作らない置き場</h3>
+
+<pre><code>object Zip {
+    fun zipDirectory(...) { ... }
+}</code></pre>
+
+<p><code>class</code> ではなく <code>object</code> と書くと、<strong>実体がひとつだけ自動で作られます</strong>
+（シングルトン）。呼ぶときは <code>Zip.zipDirectory(...)</code> と、型名から直接呼びます。
+<code>new</code> に相当するものは書きません（Kotlin に <code>new</code> はありません）。</p>
+
+<p>「状態を持たず、関数を置いておくだけの入れ物」に使います。
+このリポジトリでは <code>Zip</code> / <code>PoseMath</code> / <code>YuvJpeg</code> / <code>TransformsJson</code> /
+<code>CaptureSpec</code> が <code>object</code> です。どれも中に <code>var</code> を持っていません。</p>
+
+<p>Python でいえばモジュールに関数を並べた状態、と考えると近いです。</p>
+
+<h3>2.3 <code>private</code> — 外から呼べなくする</h3>
+
+<p><code>zipDirectory</code> には付いていませんが、<code>addRecursively</code> には <code>private</code> が付いています。
+これは<strong>このファイルの外からは見えない</strong>という意味です。</p>
+
+<p><code>Zip</code> の利用者に見せたいのは <code>zipDirectory</code> ひとつだけで、
+再帰の補助関数は内部の都合です。<strong>公開するものを最小にする</strong>のは、
+あとで実装を変えたくなったときに、外に影響が出ないようにするためです。</p>
+
+<h3>2.4 ラムダと <code>it</code></h3>
+
+<pre><code>file.listFiles()?.sortedBy { it.name }</code></pre>
+
+<p><code>{ it.name }</code> が<strong>ラムダ式</strong>（その場で書く名前のない関数）です。
+<code>sortedBy</code> は「各要素から並び替えのキーを取り出す関数」を受け取るので、
+「要素の <code>name</code> を使って並べ替えて」という意味になります。</p>
+
+<p><strong>引数が 1 つのラムダでは、引数名を省略して <code>it</code> と書けます。</strong>
+省略しないで書くとこうです。</p>
+
+<pre><code>file.listFiles()?.sortedBy { f -&gt; f.name }</code></pre>
+
+<p><code>-&gt;</code> の左が引数、右が中身です。引数が 1 つなら <code>it</code> にできる、というだけの話です。</p>
+
+<h3>2.5 末尾ラムダ — 丸括弧が消える理由</h3>
+
+<p>ここが初見でいちばん戸惑うところです。</p>
+
+<pre><code>// 本来の形
+file.listFiles()?.sortedBy({ it.name })
+
+// 最後の引数がラムダなら、丸括弧の外に出せる
+file.listFiles()?.sortedBy() { it.name }
+
+// 引数がラムダだけなら、丸括弧ごと省略できる
+file.listFiles()?.sortedBy { it.name }</code></pre>
+
+<p>3 つとも同じ意味です。Kotlin では一番下の形で書くのが普通なので、
+<strong><code>なにか { ... }</code> という並びを見たら「関数呼び出しにラムダを渡している」と読みます</strong>。</p>
+
+<p>これを知らないと <code>use { ... }</code> や <code>apply { ... }</code> が
+言語のキーワードに見えてしまいますが、全部ただの関数呼び出しです。</p>
+
+<h3>2.6 <code>use</code> — 閉じ忘れをなくす</h3>
+
+<pre><code>ZipOutputStream(...).use { zos -&gt;
+    zos.setLevel(1)
+    addRecursively(zos, dir, dir.name)
+}</code></pre>
+
+<p>ファイルやストリームは、使い終わったら閉じる必要があります。
+途中で例外が飛んでも閉じなければならないので、自分で書くと面倒です。</p>
+
+<p><code>use</code> は<strong>ブロックを抜けるときに必ず <code>close()</code> を呼んでくれる</strong>関数です。
+例外で抜けた場合も閉じます。Python の <code>with</code> 文とほぼ同じ役割です。</p>
+
+<p>ここでは引数に <code>zos</code> と名前を付けています（<code>it</code> のままでもよいのですが、
+ネストするので名前を付けたほうが読みやすい）。
+33 行目のほうは <code>it</code> のまま使っています。</p>
+
+<pre><code>file.inputStream().buffered().use { it.copyTo(zos) }</code></pre>
+
+<h3>2.7 <code>?.</code> の連鎖</h3>
+
+<pre><code>file.listFiles()?.sortedBy { it.name }?.forEach { ... }</code></pre>
+
+<p><code>listFiles()</code> は Java のメソッドで、<strong>失敗すると null を返します</strong>
+（ディレクトリが読めないときなど）。
+Kotlin から見ると戻り値の型は <code>Array&lt;File&gt;?</code> なので、そのままでは <code>.sortedBy</code> を呼べません。</p>
+
+<p><code>?.</code> をはさむと「null でなければ呼ぶ、null ならそこで打ち切って全体を null にする」
+という意味になります。<code>?.</code> が 2 つ連なっているのは、
+<code>listFiles()</code> が null なら <code>sortedBy</code> も <code>forEach</code> も実行されない、という意味です。</p>
+
+<p>1 行で書くとこうなりますが、null チェックを自分で書くとこうです。</p>
+
+<pre><code>val files = file.listFiles()
+if (files != null) {
+    for (f in files.sortedBy { it.name }) { ... }
+}</code></pre>
+
+<h3>2.8 文字列テンプレートの実例</h3>
+
+<pre><code>zos.putNextEntry(ZipEntry("$entryPath/"))
+addRecursively(zos, it, "$entryPath/${it.name}")</code></pre>
+
+<p>変数をそのまま埋めるなら <code>$名前</code>、
+式（<code>.name</code> のようにドットが続くもの）を埋めるなら <code>${ }</code> です。
+<code>$entryPath.name</code> と書くと「<code>entryPath</code> を埋めたあとに文字列 <code>.name</code>」になってしまうので、
+ドットが続くときは必ず <code>${ }</code> が要ります。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li><code>zipDirectory</code> の <code>zos.setLevel(1)</code> を <code>setLevel(9)</code> に変えて、
+      アプリを動かし、ZIP のサイズと書き出しにかかる時間を比べてみる。
+      <strong>なぜ 1 にしてあるのか</strong>が体感で分かります（コメントに理由が書いてあります）</li>
+    <li><code>sortedBy { it.name }</code> を消すとどうなるか考える。
+      消しても ZIP は作れますが、なぜ並べているのでしょう？
+      <details><summary>答え</summary>
+      並べないと、ファイルシステムが返す順序（環境依存）のまま ZIP に入ります。
+      同じ撮影データから作った ZIP が毎回違うバイト列になると、
+      「前と同じものか」を比べられません。並べておくと再現性が出ます。</details></li>
+    <li><code>addRecursively</code> から <code>private</code> を外しても動きます。
+      それでも付けておく理由を、2.3 を読み返して自分の言葉で説明してみる</li>
+  </ol>
+</div>
+
+<h2 id="c3"><span class="n">3</span> PoseMath.kt を読む</h2>
+
+<p>57 行。カメラの姿勢（位置と向き）を、書き出す形に変換するだけのファイルです。
+数学の中身は分からなくてかまいません。<strong>Kotlin として何が書いてあるか</strong>だけ追います。</p>
+
+<h3>3.1 配列の型</h3>
+
+<pre><code>val m = FloatArray(16)        // Float が 16 個の配列。全部 0.0f で埋まる
+val q = FloatArray(4)
+val t = FloatArray(3)</code></pre>
+
+<p>Kotlin には配列の型がいくつかあります。</p>
+
+<table>
+  <tr><th>書き方</th><th>意味</th></tr>
+  <tr><td><code>FloatArray</code></td><td><code>Float</code> 専用の配列。中身が素の数値で、速い</td></tr>
+  <tr><td><code>IntArray</code> / <code>ByteArray</code> / <code>LongArray</code></td><td>同じく専用の配列</td></tr>
+  <tr><td><code>Array&lt;String&gt;</code></td><td>なんでも入れられる配列。<code>&lt;&gt;</code> の中が要素の型</td></tr>
+  <tr><td><code>List&lt;String&gt;</code></td><td>読み取り専用のリスト。要素を足したり消したりできない</td></tr>
+  <tr><td><code>MutableList&lt;String&gt;</code></td><td>足したり消したりできるリスト</td></tr>
+</table>
+
+<p><code>&lt;&gt;</code> は<strong>ジェネリクス</strong>といって、「中身の型」を指定する書き方です。
+<code>List&lt;String&gt;</code> は「String のリスト」。
+<code>Array&lt;FloatArray&gt;</code> なら「FloatArray の配列」＝ 2 次元配列です。</p>
+
+<h3>3.2 <code>Array(4) { ... }</code> — 初期化ラムダ</h3>
+
+<pre><code>return Array(4) { row -&gt; FloatArray(4) { col -&gt; m[col * 4 + row] } }</code></pre>
+
+<p>これが読めれば 3 章は終わりです。分解します。</p>
+
+<pre><code>FloatArray(4) { col -&gt; ... }</code></pre>
+
+<p><code>FloatArray(4)</code> は「長さ 4 の配列」ですが、
+<strong>末尾にラムダを付けると「各要素をどう作るか」を書けます</strong>（2.5 の末尾ラムダです）。
+ラムダには添字 <code>0, 1, 2, 3</code> が順に渡されるので、
+<code>col</code> には 0〜3 が入り、その戻り値がその位置の要素になります。</p>
+
+<pre><code>FloatArray(4) { col -&gt; col * 10f }   // [0.0, 10.0, 20.0, 30.0]</code></pre>
+
+<p>これを二重にすると 2 次元配列が作れます。</p>
+
+<pre><code>Array(4) { row -&gt;              // 4 行つくる。row = 0,1,2,3
+    FloatArray(4) { col -&gt;     // 各行に 4 列つくる。col = 0,1,2,3
+        m[col * 4 + row]       // 1 次元配列 m から拾ってくる
+    }
+}</code></pre>
+
+<p>やっていることは「1 次元で並んだ 16 個の数値を、行と列を入れ替えながら 4×4 に並べ直す」です。
+ループを書かずに 1 行で書けるのが、この形の利点です。</p>
+
+<h3>3.3 単一式関数 — <code>{ }</code> を <code>=</code> にする</h3>
+
+<pre><code>fun withIdentityRotation(pose: Pose): Pose =
+    Pose(translation(pose), floatArrayOf(0f, 0f, 0f, 1f))</code></pre>
+
+<p>本体が式ひとつだけの関数は、<code>{ return ... }</code> ではなく <code>= ...</code> と書けます。
+上は次と同じ意味です。</p>
+
+<pre><code>fun withIdentityRotation(pose: Pose): Pose {
+    return Pose(translation(pose), floatArrayOf(0f, 0f, 0f, 1f))
+}</code></pre>
+
+<p>短い関数はこの形のほうが読みやすいので、Kotlin ではよく使われます。</p>
+
+<h3>3.4 <code>floatArrayOf</code> — 中身を並べて作る</h3>
+
+<pre><code>floatArrayOf(0f, 0f, 0f, 1f)   // 中身を直接書いて配列を作る
+FloatArray(4)                  // 長さだけ指定して 0 で埋める</code></pre>
+
+<p>同様に <code>intArrayOf</code>、<code>listOf</code>、<code>setOf</code>、<code>mapOf</code> があります。
+<code>CaptureModel.kt</code> に出てくる <code>setOf("TRACKING", "PAUSED", "STOPPED")</code> がその例です。</p>
+
+<h3>3.5 早期 return とガード</h3>
+
+<pre><code>private fun normalized(q: FloatArray): FloatArray {
+    val n = sqrt((q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]).toDouble())
+    if (n &lt;= 0.0 || !n.isFinite()) return floatArrayOf(0f, 0f, 0f, 1f)
+    return FloatArray(4) { (q[it] / n).toFloat() }
+}</code></pre>
+
+<p><code>0</code> で割ると壊れるので、先に「おかしい入力」を弾いてから本処理を書きます。
+この「異常系を先に <code>return</code> して、あとは正常系だけを書く」形は
+このリポジトリのあちこちで出てきます。ネストが深くならないので読みやすくなります。</p>
+
+<p><code>||</code> は「または」、<code>&amp;&amp;</code> は「かつ」、<code>!</code> は否定です。
+<code>.toDouble()</code> / <code>.toFloat()</code> は<strong>明示的な型変換</strong>で、
+Kotlin は <code>Float</code> と <code>Double</code> を勝手に混ぜてくれないので、自分で変換します。</p>
+
+<p>最後の行の <code>q[it]</code> に注目してください。
+<code>FloatArray(4) { ... }</code> のラムダ引数を <code>it</code> のまま使っています
+（<code>{ i -&gt; q[i] / n }</code> と書いても同じ）。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li><code>toRowMajorMatrix</code> の <code>m[col * 4 + row]</code> を
+      <code>m[row * 4 + col]</code> に変えると何が起きるか、紙に 4×4 を書いて確かめる。
+      これは<strong>実際にやりがちな間違い</strong>で、README に「取り違えやすい点」として載っています</li>
+    <li>Kotlin Playground で、<code>Array(3) { row -&gt; IntArray(3) { col -&gt; row * 3 + col } }</code> を作り、
+      <code>joinToString</code> で中身を表示してみる</li>
+    <li><code>translation</code> と <code>quaternionXyzw</code> は形がそっくりです。
+      共通化できそうに見えますが、しないほうがよい理由を考えてみる
+      <details><summary>ヒント</summary>
+      長さが違う（3 と 4）だけでなく、<code>quaternionXyzw</code> は正規化をしています。
+      「見た目が似ている」と「同じ処理」は別物です。
+      無理にまとめると、片方だけ仕様が変わったときに壊れます。</details></li>
+  </ol>
+</div>
+
+<h2 id="c4"><span class="n">4</span> CaptureModel.kt を読む</h2>
+
+<p>123 行。このファイルには<strong>処理がひとつもありません</strong>。
+「どんなデータを扱うのか」を型として宣言しているだけです。</p>
+
+<p>コードを書くとき、処理から書き始めると迷子になります。
+先に<strong>データの形</strong>を決めてしまうと、処理は自然に決まります。
+このファイルはそのお手本として読んでください。</p>
+
+<h3>4.1 <code>data class</code> — 値をまとめた型</h3>
+
+<div class="file">capture/CaptureModel.kt</div>
+<pre><code>data class Intrinsics(
+    val flX: Float,
+    val flY: Float,
+    val cx: Float,
+    val cy: Float,
+    val w: Int,
+    val h: Int,
+)</code></pre>
+
+<p>これだけで「6 つの値をまとめて持ち運べる型」ができます。使い方はこうです。</p>
+
+<pre><code>val i = Intrinsics(505.12f, 505.12f, 320f, 240f, 640, 480)
+println(i.w)        // 640</code></pre>
+
+<p><code>class</code> の前に <code>data</code> を付けると、Kotlin が次の 3 つを自動で用意します。</p>
+
+<table>
+  <tr><th>自動で手に入るもの</th><th>効果</th></tr>
+  <tr><td><code>equals</code>（<code>==</code> の中身）</td>
+      <td><strong>中身が同じなら等しい</strong>と判定される。これが重要（後述）</td></tr>
+  <tr><td><code>toString</code></td>
+      <td><code>println(i)</code> で <code>Intrinsics(flX=505.12, ...)</code> と中身が出る。デバッグで効く</td></tr>
+  <tr><td><code>copy</code></td>
+      <td>一部だけ変えた新しい値を作れる</td></tr>
+</table>
+
+<h4><code>==</code> が中身の比較になる、の意味</h4>
+
+<p>普通の <code>class</code> だと <code>==</code> は「同じ実体かどうか」になります。
+<code>data class</code> だと「中身が同じかどうか」になります。この違いが実際に効いている箇所があります。</p>
+
+<div class="file">capture/CaptureSessionWriter.kt</div>
+<pre><code>val override = frame.intrinsicsOverride
+    ?: frame.intrinsics.takeIf { it != baseIntrinsics }</code></pre>
+
+<p>「このフレームの intrinsics が、セッション全体のものと<strong>違っていたら</strong>フレーム側に書く」
+という判定です。<code>Intrinsics</code> が <code>data class</code> だからこそ
+<code>!=</code> が中身の比較になり、この 1 行が成立しています。
+普通の <code>class</code> にすると、毎回「別の実体」と判定されて全フレームに intrinsics が書かれてしまいます。</p>
+
+<h4><code>copy</code></h4>
+
+<pre><code>meta.copy(originRefreshedAtEnd = false)</code></pre>
+
+<p><code>meta</code> の他の項目はそのままに、<code>originRefreshedAtEnd</code> だけ <code>false</code> にした
+<strong>新しい値</strong>を作ります。元の <code>meta</code> は変わりません。
+<code>val</code> で固めたまま「一部だけ違うもの」を作れるので、書き換えずに済みます。</p>
+
+<h3>4.2 <code>data class</code> にしない場合</h3>
+
+<p>同じファイルの <code>PendingFrame</code> と <code>WrittenFrame</code> は、<code>data</code> が付いていない
+ただの <code>class</code> です。</p>
+
+<pre><code>class PendingFrame(
+    val timestampNs: Long,
+    val nv21: ByteArray,
+    ...
+)</code></pre>
+
+<p>これは意図的です。<code>PendingFrame</code> は <code>ByteArray</code>（画像データそのもの）を持っています。</p>
+
+<ul>
+  <li>数百 KB の <code>ByteArray</code> を <code>==</code> で比べる意味がない</li>
+  <li><code>toString</code> でバイト列が出ても読めない</li>
+  <li>そもそも比較も複製もしない。<strong>作って渡して捨てるだけ</strong>の型</li>
+</ul>
+
+<p><strong>使わない機能は付けない</strong>、という判断です。
+「<code>data class</code> のほうが高機能だから常にそうする」ではありません。</p>
+
+<h3>4.3 デフォルト引数と名前付き引数</h3>
+
+<pre><code>data class CaptureMeta(
+    val sessionId: String,
+    val deviceModel: String,
+    val arcoreVersion: String,
+    val captureMode: String = "cpu_image",
+    val worldOrigin: String = "session",
+    val originRefreshedAtEnd: Boolean = true,
+)</code></pre>
+
+<p><code>= "cpu_image"</code> が<strong>デフォルト引数</strong>です。呼ぶ側が省略できます。</p>
+
+<pre><code>CaptureMeta(
+    sessionId = "20260920T103104+0900",
+    deviceModel = "Pixel 8 Pro",
+    arcoreVersion = "1.47.0",
+)   // 残りの 3 つは既定値が入る</code></pre>
+
+<p>この呼び出しでは <code>引数名 = 値</code> と書いています。これが<strong>名前付き引数</strong>です。
+順番を気にしなくてよくなるうえ、<strong>呼び出し側だけを読んで意味が分かる</strong>ようになります。</p>
+
+<p>効果が分かりやすいのはこういう場合です。</p>
+
+<pre><code>// これは何を渡している？
+Intrinsics(505.12f, 505.12f, 320f, 240f, 640, 480)
+
+// こう書けば読める
+Intrinsics(flX = 505.12f, flY = 505.12f, cx = 320f, cy = 240f, w = 640, h = 480)</code></pre>
+
+<p>引数が 3 つを超えたら名前付きにする、くらいの感覚でよいと思います。
+<code>MainActivity.kt</code> の <code>PendingFrame(...)</code> を作っている箇所は、
+引数が 8 つあるので全部名前付きにしてあります。</p>
+
+<h3>4.4 null 許容型を型で表す</h3>
+
+<pre><code>val intrinsicsOverride: Intrinsics? = null
+val exposureNs: Long? = null
+val iso: Int? = null</code></pre>
+
+<p><code>?</code> が付いているので「無いこともある」と型に書いてあります。
+<code>exposureNs</code> は ARCore から取れないので常に <code>null</code>、
+<code>intrinsicsOverride</code> は通常 <code>null</code> で、特殊な場合だけ値が入ります。</p>
+
+<p>「無いことがある」を <code>-1</code> や空文字で表す言語もありますが、
+Kotlin では <code>?</code> で表します。こうしておくと、
+<strong>使う側が null チェックを忘れるとコンパイルが通りません</strong>。</p>
+
+<h3>4.5 <code>const val</code> と定数置き場</h3>
+
+<pre><code>object CaptureSpec {
+    const val SPEC_VERSION = "arcore-fetcher/capture/1.0"
+    const val CAMERA_MODEL = "PINHOLE"
+    ...
+    val WORLD_UP = floatArrayOf(0f, 1f, 0f)
+    val TRACKING_STATES = setOf("TRACKING", "PAUSED", "STOPPED")
+}</code></pre>
+
+<p><code>const val</code> は「コンパイル時に値が決まる定数」です。
+文字列や数値にしか付けられません。
+<code>WORLD_UP</code> は配列で、実行時に作られるので <code>const</code> は付けられず、ただの <code>val</code> です。</p>
+
+<p>定数名が <code>SPEC_VERSION</code> のように大文字なのは Kotlin の慣習です
+（関数や変数は <code>camelCase</code>、定数は <code>UPPER_SNAKE_CASE</code>、型は <code>PascalCase</code>）。</p>
+
+<h3>4.6 バラバラの文字列を型で守る</h3>
+
+<pre><code>fun trackingStateOf(name: String): String =
+    if (name in TRACKING_STATES) name else "STOPPED"</code></pre>
+
+<p>ここで 2 つ新しいことが出ています。</p>
+
+<h4><code>if</code> は式である</h4>
+
+<p>Kotlin の <code>if</code> は<strong>値を返します</strong>。三項演算子（<code>? :</code>）がないのはこのためです。</p>
+
+<pre><code>val x = if (a &gt; b) a else b        // どちらかが x に入る</code></pre>
+
+<p>だから <code>fun ... : String = if (...) ... else ...</code> という単一式関数が書けます。
+<code>if</code> を式として使うときは <code>else</code> が必須です（値が決まらなくなるので）。</p>
+
+<h4><code>in</code> — 含まれているか</h4>
+
+<pre><code>if (name in TRACKING_STATES)       // Set に含まれていれば true</code></pre>
+
+<p><code>in</code> はコレクションに対する「含む」の判定です。
+ループの <code>for (x in list)</code> の <code>in</code> と同じ記号ですが、別の意味なので混同しないこと。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li>Kotlin Playground で、<code>data class</code> と普通の <code>class</code> を両方作り、
+      中身が同じ 2 つの値を <code>==</code> で比べてみる。結果が違うことを自分の目で確認する
+      <pre><code>data class A(val x: Int)
+class B(val x: Int)
+
+fun main() {
+    println(A(1) == A(1))   // ?
+    println(B(1) == B(1))   // ?
+    println(A(1))           // ?
+    println(B(1))           // ?
+}</code></pre></li>
+    <li><code>CaptureMeta</code> に <code>val note: String = ""</code> を足しても、既存の呼び出しが
+      一切壊れないことを確かめる。デフォルト引数があると後から項目を足しやすい、という体験です</li>
+    <li><code>Intrinsics</code> から <code>data</code> を外すと、
+      <code>CaptureSessionWriter.kt</code> の挙動がどう変わるか予想する（4.1 参照）</li>
+  </ol>
+</div>
+
+<h2 id="c5"><span class="n">5</span> YuvJpeg.kt を読む</h2>
+
+<p>110 行。カメラから来た画像データの並びを、JPEG にできる並びに詰め替えるファイルです。
+画像形式の中身は分からなくてかまいません。<strong>ループの書き方</strong>を覚えます。</p>
+
+<h3>5.1 範囲とループ</h3>
+
+<pre><code>for (r in 0 until height) { ... }    // 0, 1, 2, ..., height-1  （height は含まない）
+for (r in 0..height) { ... }         // 0, 1, 2, ..., height     （height を含む）
+for (r in height downTo 0) { ... }   // 逆順
+for (r in 0 until height step 2) { } // 2 つ飛ばし</code></pre>
+
+<p><strong><code>until</code> と <code>..</code> の違いは必ず覚えてください。</strong>
+配列を回すときは最後を含めない <code>until</code> です。
+<code>..</code> を使うと 1 つはみ出して、実行時に落ちます。</p>
+
+<p>コレクションを直接回すこともできます。</p>
+
+<pre><code>for (f in files) { ... }
+files.forEach { ... }                // ラムダで書く形（2.5 の末尾ラムダ）</code></pre>
+
+<h3>5.2 <code>while</code> と複数のカウンタ</h3>
+
+<pre><code>var srcIndex = 0
+var c = 0
+while (c &lt; width &amp;&amp; srcIndex &lt; n) {
+    out[dst] = row[srcIndex]
+    srcIndex += pixelStride
+    dst += outPixelStride
+    c++
+}</code></pre>
+
+<p>カウンタが 3 つ（<code>srcIndex</code>, <code>dst</code>, <code>c</code>）あって、
+しかも進む幅がそれぞれ違うので、<code>for</code> では書けません。こういうときは <code>while</code> です。</p>
+
+<p>ここは<strong><code>var</code> を使ってよい数少ない場所</strong>です。
+「ループの中で更新していくカウンタ」は本質的に変わる値なので、<code>var</code> が正しい。
+1.1 で「<code>val</code> が既定」と書きましたが、<code>var</code> が悪いわけではありません。</p>
+
+<p><code>c++</code> は <code>c = c + 1</code>、<code>dst += x</code> は <code>dst = dst + x</code> の短縮形です。</p>
+
+<h3>5.3 <code>require</code> — 前提を書いて落とす</h3>
+
+<pre><code>require(image.format == ImageFormat.YUV_420_888) {
+    "想定外の画像フォーマット: ${image.format}"
+}</code></pre>
+
+<p><code>require(条件) { メッセージ }</code> は、条件が <code>false</code> なら例外を投げます。
+「この関数は YUV_420_888 しか受け付けない」という前提を、コードとして書いたものです。</p>
+
+<p>コメントに「YUV_420_888 を渡すこと」と書くだけだと、違う値が来ても気づけません。
+<code>require</code> にしておけば、<strong>前提が破れた瞬間に、理由付きで止まります</strong>。</p>
+
+<p>末尾のラムダになっているのは、条件が満たされているときにメッセージ文字列を
+組み立てる無駄を省くためです（<code>${image.format}</code> の評価が起きない）。</p>
+
+<h3>5.4 名前付き引数が効く場面</h3>
+
+<pre><code>private fun copyPlane(
+    src: ByteBuffer,
+    rowStride: Int,
+    pixelStride: Int,
+    width: Int,
+    height: Int,
+    out: ByteArray,
+    outOffset: Int,
+    outPixelStride: Int,
+) { ... }</code></pre>
+
+<p>引数が 8 つ、しかも <code>Int</code> ばかりです。
+呼び出し側でひとつでも順番を間違えると、<strong>コンパイルは通るのに画像が壊れます</strong>。
+型が同じだからコンパイラが気づけないのです。</p>
+
+<pre><code>copyPlane(y.buffer, y.rowStride, y.pixelStride, width, height, out, 0, 1)
+copyPlane(v.buffer, v.rowStride, v.pixelStride, chromaW, chromaH, out, ySize, 2)
+copyPlane(u.buffer, u.rowStride, u.pixelStride, chromaW, chromaH, out, ySize + 1, 2)</code></pre>
+
+<p>3 行が縦に並んでいて差分が読めるので、ここは位置引数のままにしています。
+ただし、これは<strong>ぎりぎりの判断</strong>です。
+1 か所でしか呼ばないなら、名前付きにしたほうが安全でした。</p>
+
+<div class="note">
+  <p><strong>同じ型の引数が並ぶ関数は危険信号です。</strong>
+  名前付き引数を使うか、引数をまとめた型（<code>data class</code>）を作るか、
+  どちらかを検討する合図だと思ってください。</p>
+</div>
+
+<h3>5.5 デフォルト引数の実用例</h3>
+
+<pre><code>const val DEFAULT_QUALITY = 95
+
+fun compressToJpeg(
+    nv21: ByteArray,
+    width: Int,
+    height: Int,
+    stream: OutputStream,
+    quality: Int = DEFAULT_QUALITY,
+) { ... }</code></pre>
+
+<p>呼び出し側（<code>CaptureSessionWriter</code>）は <code>quality</code> を渡していません。
+必要になったら渡せる、という余地だけ残してあります。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li><code>DEFAULT_QUALITY</code> を 60 に変えて撮影し、
+      画像の見た目とファイルサイズがどう変わるか確かめる</li>
+    <li><code>for (r in 0 until height)</code> を <code>for (r in 0..height)</code> に変えると
+      どうなるか<strong>予想してから</strong>実行する（クラッシュします。例外メッセージを読むこと）</li>
+    <li><code>require</code> の条件をわざと <code>false</code> にして、
+      どんな例外メッセージが出るかログで確認する</li>
+  </ol>
+</div>
+
+<h2 id="c6"><span class="n">6</span> TransformsJson.kt を読む</h2>
+
+<p>176 行。JSON を文字列として組み立てるファイルです。
+JSON ライブラリを使わず手書きしているので、見た目は地味ですが、
+<strong>コレクション操作とスコープ関数</strong>が出てきます。</p>
+
+<h3>6.1 <code>StringBuilder</code> — 文字列を少しずつ足す</h3>
+
+<pre><code>val sb = StringBuilder(1024 + frames.size * 512)
+sb.append("{\n")
+sb.append("  ").append(str("spec_version")).append(": ")</code></pre>
+
+<p>Kotlin の <code>String</code> は変更できません（<code>val</code> でも <code>var</code> でもなく、型として不変）。
+<code>s = s + "x"</code> と書くたびに<strong>新しい文字列が作られる</strong>ので、
+数千回繰り返すと遅くなります。</p>
+
+<p><code>StringBuilder</code> は内部の可変バッファに追記していく型で、最後に <code>toString()</code> で文字列にします。
+<code>StringBuilder(1024 + frames.size * 512)</code> の引数は最初に確保するサイズの見積もりで、
+足りなくなるたびに内部で確保し直すのを減らすためのものです。</p>
+
+<p><code>.append(...).append(...)</code> と数珠つなぎに書けるのは、
+<code>append</code> が<strong>自分自身を返す</strong>からです（メソッドチェーン）。</p>
+
+<h3>6.2 <code>forEachIndexed</code> — 添字も一緒に回す</h3>
+
+<pre><code>frames.forEachIndexed { i, frame -&gt;
+    appendFrame(sb, frame, rootAnchorPose)
+    sb.append(if (i == frames.lastIndex) "\n" else ",\n")
+}</code></pre>
+
+<p>JSON の配列は要素の間にカンマが要りますが、<strong>最後の要素の後ろには付けられません</strong>。
+そこで「今が最後かどうか」を知る必要があり、添字が要ります。</p>
+
+<p>ラムダの引数が 2 つになったので <code>it</code> は使えず、<code>{ i, frame -&gt; }</code> と名前を書いています。
+<strong>引数が 2 つ以上のラムダは必ず名前を書く</strong>、と覚えてください。</p>
+
+<p><code>frames.lastIndex</code> は <code>frames.size - 1</code> と同じです。</p>
+
+<p>そして <code>append</code> の中でいきなり <code>if</code> が使われています。
+これが 4.6 で説明した「<code>if</code> は式」の実用例です。</p>
+
+<h3>6.3 <code>?.let { }</code> — null でないときだけ実行する</h3>
+
+<pre><code>frame.intrinsicsOverride?.let {
+    sb.append(",\n\n")
+    appendIntrinsicsOverride(sb, it)
+}</code></pre>
+
+<p><code>?.let { }</code> は Kotlin で頻出する形なので、丸ごと覚えてしまうのが早いです。</p>
+
+<ul>
+  <li><code>intrinsicsOverride</code> が <code>null</code> なら、ブロックは実行されない</li>
+  <li><code>null</code> でなければ、その値が <code>it</code> としてブロックに渡される</li>
+</ul>
+
+<p><code>if</code> で書くとこうです。</p>
+
+<pre><code>val o = frame.intrinsicsOverride
+if (o != null) {
+    sb.append(",\n\n")
+    appendIntrinsicsOverride(sb, o)
+}</code></pre>
+
+<p>同じ意味ですが、<code>?.let</code> のほうは<strong>一時変数 <code>o</code> を作らずに済む</strong>のが利点です。
+「null チェックのためだけの変数」が増えないので、読む対象が減ります。</p>
+
+<p>すぐ下の 2 つも同じ形です。</p>
+
+<pre><code>frame.exposureNs?.let {
+    sb.append(",\n      ").append(str("exposure_ns")).append(": ").append(it)
+}</code></pre>
+
+<h3>6.4 <code>joinToString</code> — 区切り文字で連結する</h3>
+
+<pre><code>private fun floatArray(v: FloatArray): String =
+    v.joinToString(prefix = "[", postfix = "]", separator = ", ") { num(it) }</code></pre>
+
+<p>1 行で <code>[1.0, 2.0, 3.0]</code> を作っています。分解するとこうです。</p>
+
+<table>
+  <tr><td><code>separator = ", "</code></td><td>要素の間に挟むもの</td></tr>
+  <tr><td><code>prefix = "["</code></td><td>先頭に付けるもの</td></tr>
+  <tr><td><code>postfix = "]"</code></td><td>末尾に付けるもの</td></tr>
+  <tr><td>末尾のラムダ <code>{ num(it) }</code></td><td>各要素を文字列に変換する方法</td></tr>
+</table>
+
+<p>引数が全部<strong>名前付き</strong>なのに注目してください。
+<code>joinToString(", ", "[", "]")</code> とも書けますが、
+どれが区切りでどれが接頭辞か、読む側には分かりません。</p>
+
+<p>自分でループを書くとこうなります。</p>
+
+<pre><code>val sb = StringBuilder("[")
+for (i in v.indices) {
+    if (i &gt; 0) sb.append(", ")
+    sb.append(num(v[i]))
+}
+sb.append("]")
+return sb.toString()</code></pre>
+
+<p>7 行が 1 行になり、しかも「最初だけカンマを付けない」という間違えやすい条件が消えます。
+<strong>標準ライブラリに用意されている操作を知っているかどうか</strong>が、
+Kotlin の書きやすさをかなり左右します。</p>
+
+<h3>6.5 <code>when</code> — 条件分岐</h3>
+
+<div class="file">capture/TransformsJson.kt の str()</div>
+<pre><code>for (c in v) {
+    when {
+        c == '"' -&gt; sb.append("\\\"")
+        c == '\\' -&gt; sb.append("\\\\")
+        c == '\n' -&gt; sb.append("\\n")
+        c &lt; ' ' -&gt; sb.append(String.format(Locale.US, "\\u%04x", c.code))
+        else -&gt; sb.append(c)
+    }
+}</code></pre>
+
+<p><code>when</code> は他の言語の <code>switch</code> にあたりますが、ずっと自由です。</p>
+
+<h4>形1: 条件を並べる（上の例）</h4>
+<pre><code>when {
+    条件A -&gt; 処理
+    条件B -&gt; 処理
+    else -&gt; 処理
+}</code></pre>
+
+<h4>形2: 値で分岐する</h4>
+<pre><code>when (state) {
+    "TRACKING" -&gt; ...
+    "PAUSED", "STOPPED" -&gt; ...     // カンマで複数まとめられる
+    else -&gt; ...
+}</code></pre>
+
+<h4>形3: 型で分岐する（7 章で出てきます）</h4>
+<pre><code>when (task) {
+    is Task.Write -&gt; ...
+    is Task.Finish -&gt; ...
+}</code></pre>
+
+<p><code>when</code> も <code>if</code> と同じく<strong>式</strong>なので、値を返せます。</p>
+
+<pre><code>val label = when {
+    n &lt; 0 -&gt; "負"
+    n == 0 -&gt; "ゼロ"
+    else -&gt; "正"
+}</code></pre>
+
+<h3>6.6 文字と文字列は別物</h3>
+
+<pre><code>c == '"'      // シングルクォート = Char（1 文字）
+"\\\""        // ダブルクォート = String</code></pre>
+
+<p>Kotlin は <code>Char</code> と <code>String</code> を厳密に区別します。
+<code>'a'</code> は <code>Char</code>、<code>"a"</code> は長さ 1 の <code>String</code> で、<code>==</code> で比べられません。</p>
+
+<p><code>"\\\""</code> が読みにくいのは、エスケープが二重になっているからです。
+Kotlin の文字列中では <code>\\</code> がバックスラッシュ 1 個、<code>\"</code> がダブルクォート 1 個。
+つまり <code>"\\\""</code> は <strong><code>\"</code> という 2 文字</strong>を表しています
+（JSON の中でダブルクォートを表す書き方）。</p>
+
+<h3>6.7 巨大な関数を分ける</h3>
+
+<p>このファイルの <code>build</code> 関数は長いですが、中身は
+<code>appendIntrinsics</code> / <code>appendFrame</code> / <code>appendIntrinsicsOverride</code> に分かれています。</p>
+
+<p>分け方の基準は「<strong>名前が付けられるまとまりかどうか</strong>」です。
+<code>appendFrame</code> は「1 フレーム分を書く」と一言で言えるので、関数にする価値があります。
+逆に、行数だけを理由に機械的に切ると、名前の付かない関数が増えて読みにくくなります。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li><code>floatArray</code> の <code>separator</code> を <code>" | "</code> に変えて出力を見る。
+      その後<strong>必ず戻す</strong>こと（JSON として壊れます）</li>
+    <li><code>forEachIndexed</code> の <code>if (i == frames.lastIndex)</code> を
+      <code>if (i == 0)</code> に変えると、出力 JSON がどう壊れるか実際に見る。
+      「最後の要素だけカンマを付けない」がなぜ必要かが分かります</li>
+    <li><code>?.let</code> を使っている 3 か所を、すべて <code>if (... != null)</code> に書き換えてみる。
+      動作は同じはずです。書き換えたうえで、どちらが読みやすいか自分で判断する</li>
+    <li>Kotlin Playground で <code>joinToString</code> を試す
+      <pre><code>fun main() {
+    val xs = listOf(1, 2, 3)
+    println(xs.joinToString())
+    println(xs.joinToString(prefix = "[", postfix = "]", separator = " - "))
+    println(xs.joinToString { "n=$it" })
+}</code></pre></li>
+  </ol>
+</div>
+
+<h2 id="c7"><span class="n">7</span> CaptureSessionWriter.kt を読む</h2>
+
+<p>149 行。ここから難易度が上がります。
+<strong>クラス</strong>と<strong>スレッド</strong>という、このアプリの骨格が出てきます。</p>
+
+<p>この型の役割は「撮ったフレームを受け取って、裏で JPEG に変換してディスクに書く」です。
+なぜ裏で（別スレッドで）やるのかは 7.6 で説明します。</p>
+
+<h3>7.1 クラスとコンストラクタ</h3>
+
+<div class="file">capture/CaptureSessionWriter.kt</div>
+<pre><code>class CaptureSessionWriter(
+    outputRoot: File,
+    private val meta: CaptureMeta,
+) {</code></pre>
+
+<p>クラス名の直後の丸括弧が<strong>コンストラクタ</strong>（作るときに渡すもの）です。
+Kotlin ではクラス宣言と一体で書きます。使うときはこうです。</p>
+
+<pre><code>val writer = CaptureSessionWriter(outputRoot, buildMeta())</code></pre>
+
+<p>2 つの引数で書き方が違うことに注目してください。</p>
+
+<table>
+  <tr><th>書き方</th><th>意味</th></tr>
+  <tr><td><code>outputRoot: File</code></td>
+      <td><strong>作るときだけ</strong>使う。あとで参照しないので保存しない</td></tr>
+  <tr><td><code>private val meta: CaptureMeta</code></td>
+      <td><code>val</code> を付けると<strong>プロパティとして保存される</strong>。あとから <code>meta.sessionId</code> と使える</td></tr>
+</table>
+
+<p><code>val</code> を付けるかどうかで、保存するかしないかが決まります。
+使わないものに <code>val</code> を付けないのは、
+「このクラスは <code>outputRoot</code> を覚えていない」と明示するためです。</p>
+
+<h3>7.2 プロパティ — クラスが持つ値</h3>
+
+<pre><code>val sessionDir: File = File(outputRoot, "capture_${meta.sessionId.dirStamp()}")
+private val imagesDir = File(sessionDir, IMAGES_DIR)
+private val queue = LinkedBlockingQueue&lt;Task&gt;()
+private val written = ArrayList&lt;WrittenFrame&gt;()
+val submittedCount = AtomicInteger(0)</code></pre>
+
+<p>クラスの中に直接書いた <code>val</code> / <code>var</code> がプロパティです。
+上から順に評価されるので、<code>imagesDir</code> の定義で <code>sessionDir</code> を参照できています
+（逆順にするとコンパイルエラー）。</p>
+
+<p><code>public</code>（何も付けない）と <code>private</code> を意識的に分けています。</p>
+
+<ul>
+  <li><code>sessionDir</code>, <code>submittedCount</code> … 外から見てよい</li>
+  <li><code>queue</code>, <code>written</code>, <code>imagesDir</code> … 内部の都合。外から触られると壊れる</li>
+</ul>
+
+<h3>7.3 <code>init</code> ブロック</h3>
+
+<pre><code>init {
+    if (!imagesDir.exists() &amp;&amp; !imagesDir.mkdirs()) {
+        throw IllegalStateException("出力先を作成できません: $imagesDir")
+    }
+    worker.start()
+}</code></pre>
+
+<p>プロパティの初期化だけでは書けない処理を <code>init</code> に書きます。
+ここでは「ディレクトリを作る」「ワーカースレッドを起動する」をしています。</p>
+
+<p><code>throw</code> で例外を投げているのが重要です。
+<strong>ディレクトリが作れなかったら、この型は成立しません。</strong>
+中途半端に作られたオブジェクトを返すより、その場で失敗させたほうが、
+呼び出し側が原因に気づけます。</p>
+
+<h3>7.4 <code>.apply { }</code> — 作ってすぐ設定する</h3>
+
+<pre><code>private val worker = Thread({ runLoop() }, "capture-writer").apply {
+    priority = Thread.NORM_PRIORITY - 1
+}</code></pre>
+
+<p><code>apply</code> は<strong>スコープ関数</strong>のひとつで、
+「作ったオブジェクトに対して設定をして、そのオブジェクトを返す」形を作ります。</p>
+
+<p>これを使わないとこう書くことになります。</p>
+
+<pre><code>private val worker = Thread({ runLoop() }, "capture-writer")
+init {
+    worker.priority = Thread.NORM_PRIORITY - 1
+}</code></pre>
+
+<p><code>apply</code> のブロックの中では、<strong><code>this</code> がそのオブジェクトになる</strong>ので、
+<code>worker.priority</code> ではなく <code>priority</code> と書けます。</p>
+
+<h4>スコープ関数の使い分け</h4>
+
+<p>Kotlin にはスコープ関数が 5 つありますが、実務で使うのは 2 つで足ります。</p>
+
+<table>
+  <tr><th>関数</th><th>ブロック内で対象を指すもの</th><th>戻り値</th><th>使いどころ</th></tr>
+  <tr><td><code>apply</code></td><td><code>this</code>（省略できる）</td><td>対象そのもの</td><td>作った直後に設定する</td></tr>
+  <tr><td><code>let</code></td><td><code>it</code></td><td>ブロックの結果</td><td>null チェック（<code>?.let</code>）、値の変換</td></tr>
+  <tr><td><code>also</code></td><td><code>it</code></td><td>対象そのもの</td><td>途中でログを挟むなど</td></tr>
+  <tr><td><code>run</code>, <code>with</code></td><td><code>this</code></td><td>ブロックの結果</td><td>（このリポジトリでは未使用）</td></tr>
+</table>
+
+<div class="note">
+  <p><strong>迷ったら <code>apply</code> と <code>?.let</code> だけ覚えてください。</strong>
+  スコープ関数は便利ですが、入れ子にすると
+  「いまの <code>it</code> はどれのことか」が分からなくなります。
+  1 段だけ使う、というのが安全な使い方です。</p>
+</div>
+
+<h3>7.5 <code>sealed class</code> — 種類が決まっている型</h3>
+
+<pre><code>private sealed class Task {
+    class Write(val frame: PendingFrame) : Task()
+    class Finish(val rootAnchorPose: Pose?, val onDone: (Result&lt;File&gt;) -&gt; Unit) : Task()
+}</code></pre>
+
+<p>ワーカースレッドに投げる「仕事」には 2 種類あります。
+「1 フレーム書け」と「締めろ」です。
+<code>sealed class</code> は<strong>「この型の仲間はここに書いてあるものだけ」</strong>と宣言する書き方です。</p>
+
+<p><code>: Task()</code> が継承（<code>Write</code> は <code>Task</code> の一種である）です。</p>
+
+<p>ありがたみは使う側に出ます。</p>
+
+<pre><code>when (val task = queue.take()) {
+    is Task.Write -&gt; ...
+    is Task.Finish -&gt; ...
+}</code></pre>
+
+<ul>
+  <li><code>is</code> は「〜型である」の判定</li>
+  <li><strong><code>else</code> が要らない。</strong>仲間が 2 つしかないとコンパイラが知っているから</li>
+  <li>あとで <code>Task.Cancel</code> を足したら、<strong>この <code>when</code> がコンパイルエラーになる</strong></li>
+</ul>
+
+<p>最後のが本質です。種類が増えたときに「対応し忘れた場所」を
+コンパイラが教えてくれます。<code>else -&gt; {}</code> と書いてしまうと、この恩恵は消えます。</p>
+
+<h4>スマートキャスト</h4>
+
+<pre><code>is Task.Write -&gt; runCatching { writeFrame(task.frame) }</code></pre>
+
+<p><code>is Task.Write</code> で判定した後の枝では、
+<code>task</code> は自動的に <code>Task.Write</code> 型として扱われます（<strong>スマートキャスト</strong>）。
+だから <code>task.frame</code> と書けます。明示的な型変換は要りません。</p>
+
+<h3>7.6 スレッド — なぜ分けるのか</h3>
+
+<p>ここがこのファイルの核心です。</p>
+
+<p>カメラ映像は毎秒 30 回描き直されています。
+その描画ループの中で JPEG 変換（数十ミリ秒）とファイル書き込みをやると、
+<strong>シャッターを切るたびに画面が固まります</strong>。</p>
+
+<p>そこで「フレームを預かるだけ預かって、すぐ帰る」ようにし、
+実際の変換と書き込みは別スレッドにやらせます。</p>
+
+<pre><code>fun submitFrame(frame: PendingFrame) {
+    if (closed) return
+    submittedCount.incrementAndGet()
+    if (frame.trackingState == "TRACKING") trackingCount.incrementAndGet()
+    queue.put(Task.Write(frame))     // 箱に入れるだけ。すぐ帰る
+}</code></pre>
+
+<pre><code>private fun runLoop() {              // 別スレッドで、ずっと回っている
+    while (true) {
+        when (val task = queue.take()) {      // 箱が空なら、来るまで待つ
+            is Task.Write -&gt; ...
+            is Task.Finish -&gt; { ...; return } // 締めたらループを抜ける
+        }
+    }
+}</code></pre>
+
+<p><code>LinkedBlockingQueue</code> は<strong>複数のスレッドから同時に触っても壊れない箱</strong>です。
+<code>put</code> で入れ、<code>take</code> で取り出します。
+<code>take</code> は箱が空のとき<strong>何もせず待ちます</strong>（ブロックする）ので、
+「仕事が来たか」を自分でぐるぐる確認する必要がありません。</p>
+
+<h3>7.7 スレッドをまたぐ値の扱い</h3>
+
+<p>複数のスレッドが同じ変数を触ると、ふつうに書くと壊れます。
+このファイルには対策が 2 種類出てきます。</p>
+
+<h4><code>@Volatile</code></h4>
+
+<pre><code>@Volatile
+private var closed = false</code></pre>
+
+<p>スレッドは高速化のために変数の値を手元に持つことがあり、
+<strong>あるスレッドが書き換えても、別のスレッドからは古いままに見える</strong>ことがあります。
+<code>@Volatile</code> を付けると、必ず本体を読み書きするようになります。</p>
+
+<p>「読む・書く」だけの単純なフラグに使います。</p>
+
+<h4><code>AtomicInteger</code></h4>
+
+<pre><code>val submittedCount = AtomicInteger(0)
+submittedCount.incrementAndGet()</code></pre>
+
+<p><code>count++</code> は、見た目は 1 命令ですが実際は「読む → 1 足す → 書く」の 3 段階です。
+2 つのスレッドが同時にやると、片方の増加が消えます。</p>
+
+<p><code>AtomicInteger</code> の <code>incrementAndGet()</code> は
+この 3 段階が<strong>割り込まれない</strong>ことが保証されています。</p>
+
+<div class="note">
+  <p><strong><code>@Volatile</code> は「増やす」には使えません。</strong>
+  <code>@Volatile var n = 0</code> に対する <code>n++</code> は、やはり壊れます。
+  「最新の値が見える」ことと「割り込まれない」ことは別の保証です。
+  読み書きだけなら <code>@Volatile</code>、増減するなら <code>Atomic〜</code>、と覚えてください。</p>
+</div>
+
+<h3>7.8 高階関数 — 関数を引数にする</h3>
+
+<pre><code>fun finish(rootAnchorPose: Pose?, onDone: (Result&lt;File&gt;) -&gt; Unit) {</code></pre>
+
+<p><code>(Result&lt;File&gt;) -&gt; Unit</code> が<strong>関数の型</strong>です。読み方はこうです。</p>
+
+<ul>
+  <li><code>(Result&lt;File&gt;)</code> … <code>Result&lt;File&gt;</code> を 1 つ受け取る</li>
+  <li><code>-&gt; Unit</code> … 何も返さない</li>
+</ul>
+
+<p>つまり <code>onDone</code> には「<code>Result&lt;File&gt;</code> を受け取る関数」を渡します。</p>
+
+<p>なぜこうするか。書き出しは別スレッドで動くので、
+<code>finish()</code> はすぐ帰ってしまい、<strong>戻り値では結果を返せません</strong>。
+そこで「終わったら、これを呼んで」と<strong>処理そのものを渡しておく</strong>のです（コールバック）。</p>
+
+<p>呼び出し側（<code>MainActivity</code>）はこう書いています。</p>
+
+<pre><code>writer.finish(refreshedAnchorPose) { result -&gt;
+    runOnUiThread { onWriteComplete(result) }
+}</code></pre>
+
+<p>2.5 の末尾ラムダなので、丸括弧の外にブロックが出ています。</p>
+
+<h3>7.9 <code>runCatching</code> と <code>Result</code></h3>
+
+<pre><code>is Task.Write -&gt; runCatching { writeFrame(task.frame) }
+    .onFailure { Log.e(TAG, "フレームの書き出しに失敗", it) }</code></pre>
+
+<p><code>runCatching { }</code> は「ブロックを実行し、例外が出ても投げずに <code>Result</code> に包む」関数です。
+<code>try-catch</code> の代わりに使えます。</p>
+
+<pre><code>// try-catch で書くと
+try {
+    writeFrame(task.frame)
+} catch (e: Exception) {
+    Log.e(TAG, "フレームの書き出しに失敗", e)
+}</code></pre>
+
+<p><code>Result</code> は「成功したら値、失敗したら例外」を持つ型で、次のように扱います。</p>
+
+<table>
+  <tr><td><code>.onSuccess { }</code></td><td>成功したときだけ実行（<code>it</code> は値）</td></tr>
+  <tr><td><code>.onFailure { }</code></td><td>失敗したときだけ実行（<code>it</code> は例外）</td></tr>
+  <tr><td><code>.getOrNull()</code></td><td>成功なら値、失敗なら <code>null</code></td></tr>
+</table>
+
+<p>1 フレームの書き出しが失敗しても、<strong>撮影全体は続けたい</strong>ので、
+ログだけ出して次のフレームへ進みます。ここで例外が飛ぶと
+ワーカースレッドが死に、以降ずっと書き出せなくなります。</p>
+
+<h3>7.10 <code>companion object</code> と拡張関数</h3>
+
+<pre><code>companion object {
+    private const val TAG = "CaptureSessionWriter"
+    private const val IMAGES_DIR = "images"
+
+    private fun String.dirStamp(): String =
+        takeWhile { it.isDigit() || it == 'T' }.ifEmpty { this }
+}</code></pre>
+
+<p><code>companion object</code> は「クラスに属するが、インスタンスごとには持たないもの」の置き場です。
+定数を置くのが主な用途です。<code>object</code>（2.2）をクラスの中に置いたもの、と考えてください。</p>
+
+<h4>拡張関数</h4>
+
+<pre><code>private fun String.dirStamp(): String = ...</code></pre>
+
+<p><code>fun String.〜</code> と書くと、<strong>既存の型に自分の関数を足せます</strong>。
+<code>String</code> は標準ライブラリの型で中身をいじれませんが、
+あたかもメソッドのように呼べるようになります。</p>
+
+<pre><code>meta.sessionId.dirStamp()     // String のメソッドのように呼べる</code></pre>
+
+<p>関数の中では <code>this</code> がその文字列を指すので、
+<code>takeWhile { ... }</code> は <code>this.takeWhile { ... }</code> の意味です。</p>
+
+<p>やっていることは
+「先頭から数字と <code>T</code> が続く間だけ取る」＝
+<code>20260920T103104+0900</code> → <code>20260920T103104</code>。
+<code>ifEmpty { this }</code> は「結果が空なら元の文字列を使う」という保険です。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li><code>sealed class Task</code> に <code>class Cancel : Task()</code> を足してみる。
+      <code>runLoop</code> の <code>when</code> が<strong>コンパイルエラーになる</strong>ことを確認する。
+      これが <code>sealed</code> の価値です（確認したら戻すこと）</li>
+    <li><code>@Volatile</code> を <code>closed</code> から外しても、ほとんどの場合は動いてしまいます。
+      それでも付ける理由を 7.7 から説明してみる</li>
+    <li><code>runCatching { writeFrame(...) }.onFailure { ... }</code> を
+      <code>try-catch</code> で書き換えてみる。動作は同じはずです</li>
+    <li>拡張関数を自分で書いてみる。Kotlin Playground で
+      <pre><code>fun Int.twice(): Int = this * 2
+
+fun main() {
+    println(5.twice())
+}</code></pre></li>
+  </ol>
+</div>
+
+<h2 id="c8"><span class="n">8</span> MainActivity.kt を読む</h2>
+
+<p>484 行。ここまでの章の内容が全部出てきます。
+新しく覚えるのは <strong>継承</strong>、<strong><code>override</code></strong>、<strong><code>lateinit</code></strong>、
+そして <strong>Android のライフサイクル</strong>です。</p>
+
+<h3>8.1 継承とインターフェース</h3>
+
+<div class="file">MainActivity.kt</div>
+<pre><code>class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {</code></pre>
+
+<p><code>:</code> の後ろに、親となる型を並べます。</p>
+
+<table>
+  <tr><td><code>AppCompatActivity()</code></td>
+      <td><strong>クラスの継承</strong>。丸括弧が付く（コンストラクタを呼ぶから）。1 つだけ</td></tr>
+  <tr><td><code>GLSurfaceView.Renderer</code></td>
+      <td><strong>インターフェースの実装</strong>。丸括弧なし。いくつでも並べられる</td></tr>
+</table>
+
+<p><code>AppCompatActivity</code> は Android の「画面」の基本型で、
+画面として振る舞うために必要なことが全部入っています。
+自分で書くのは差分だけです。</p>
+
+<p><code>GLSurfaceView.Renderer</code> は<strong>インターフェース</strong>＝
+「この 3 つの関数を持っていると約束する」という宣言です。
+約束したのに書かないとコンパイルエラーになります。</p>
+
+<h3>8.2 <code>override</code> — 親の関数を上書きする</h3>
+
+<pre><code>override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    ...
+}</code></pre>
+
+<ul>
+  <li><code>override</code> … 親が持っている関数を自分のもので置き換える、という宣言</li>
+  <li><code>super.onCreate(...)</code> … 親の実装も呼ぶ。<strong>Android では基本的に必須</strong></li>
+</ul>
+
+<p>Kotlin では <code>override</code> を<strong>書き忘れるとコンパイルエラー</strong>になります。
+また、親側が <code>open</code> でない関数は上書きできません
+（Kotlin のクラスは既定で継承・上書きが禁止されています）。</p>
+
+<div class="note">
+  <p><strong><code>super</code> の呼び忘れは典型的なバグです。</strong>
+  <code>onCreate</code> / <code>onResume</code> / <code>onPause</code> などは、
+  親の実装が内部状態を進めているので、呼ばないと動作がおかしくなります。
+  Android Studio が警告してくれますが、覚えておいてください。</p>
+</div>
+
+<h3>8.3 <code>lateinit</code> — あとから必ず入れる</h3>
+
+<pre><code>private lateinit var binding: ActivityMainBinding</code></pre>
+
+<p><code>binding</code> は <code>onCreate</code> が呼ばれるまで作れません。
+しかし <code>ActivityMainBinding?</code> という null 許容型にすると、
+使うたびに <code>binding?.</code> と書くことになって煩雑です。</p>
+
+<p><code>lateinit var</code> は「今は入っていないが、使う前に必ず入れる」という宣言です。
+入れる前に触ると実行時に例外が出ますが、<strong>null チェックなしで書けます</strong>。</p>
+
+<table>
+  <tr><th></th><th>使う場面</th></tr>
+  <tr><td><code>lateinit var</code></td><td>初期化のタイミングが後だが、<strong>必ず入る</strong>もの</td></tr>
+  <tr><td><code>var x: T? = null</code></td><td><strong>本当に無いことがある</strong>もの（<code>session</code>, <code>writer</code>, <code>rootAnchor</code>）</td></tr>
+</table>
+
+<p>このファイルで <code>session</code> や <code>writer</code> が
+<code>lateinit</code> ではなく <code>?</code> なのは、
+「まだ作られていない」「もう終了した」という状態が<strong>実際にある</strong>からです。
+区別して使い分けています。</p>
+
+<h3>8.4 Activity のライフサイクル</h3>
+
+<p>Android の画面は、システムから決まった順で関数を呼ばれます。
+自分で <code>main</code> から呼ぶのではない、というのが Android の最大の特徴です。</p>
+
+<pre><code>起動      onCreate  →  onResume
+他アプリへ            onPause
+戻ってくる            onResume
+終了                  onPause  →  onDestroy</code></pre>
+
+<p>重要なのは、<strong><code>onPause</code> と <code>onResume</code> は何度でも繰り返される</strong>ことです。
+ホームボタンを押す、通知から別アプリへ行く、画面を消す——全部 <code>onPause</code> が呼ばれます。</p>
+
+<p>カメラのような<strong>他のアプリと取り合う資源</strong>は、
+<code>onPause</code> で必ず手放し、<code>onResume</code> で取り直す必要があります。</p>
+
+<pre><code>override fun onPause() {
+    super.onPause()
+    if (session != null) {
+        // GLSurfaceView を先に止めてから Session を pause する（逆だと
+        // 描画スレッドが解放済みの Session を触りうる）。
+        binding.surfaceView.onPause()
+        session?.pause()
+    }
+}</code></pre>
+
+<p>コメントに書いてある順序が守るべき点です。
+<strong>止める順序と始める順序は逆になる</strong>、と覚えておくと間違えにくくなります。</p>
+
+<h3>8.5 スレッドの規約（このアプリで一番大事な決まり）</h3>
+
+<p>このアプリには 3 つのスレッドが登場します。</p>
+
+<table>
+  <tr><th>スレッド</th><th>何をする</th><th>触ってよいもの</th></tr>
+  <tr><td>UI スレッド</td><td>ボタンを押した処理、画面の更新</td><td><code>binding</code> などの View</td></tr>
+  <tr><td>GL スレッド</td><td><code>onDrawFrame</code>。毎秒 30 回まわる</td><td>ARCore のオブジェクト</td></tr>
+  <tr><td>writer スレッド</td><td>JPEG 変換とファイル書き込み</td><td>ファイル</td></tr>
+</table>
+
+<p>規約はこうです。</p>
+
+<ul>
+  <li><strong>ARCore のオブジェクトは GL スレッドからのみ触る</strong></li>
+  <li><strong>View は UI スレッドからのみ触る</strong></li>
+</ul>
+
+<p>この 2 つは Android と ARCore 側の制約で、破ると落ちるか、静かに壊れます。</p>
+
+<h4>UI スレッド → GL スレッドへの依頼</h4>
+
+<pre><code>private val captureRequested = AtomicBoolean(false)
+
+// UI スレッド（ボタンが押された）
+binding.shutterButton.setOnClickListener { captureRequested.set(true) }
+
+// GL スレッド（描画のたび）
+if (captureRequested.getAndSet(false)) {
+    runCatching { captureFrame(frame, camera) }
+}</code></pre>
+
+<p>ボタンを押した瞬間に撮影処理を始めるのではなく、<strong>旗を立てるだけ</strong>にします。
+GL スレッドは毎フレーム旗を見て、立っていたら撮影して旗を下ろします。</p>
+
+<p><code>getAndSet(false)</code> は「今の値を取得して、同時に <code>false</code> にする」操作です。
+<code>if (flag) { flag = false; ... }</code> と 2 行で書くと、
+その隙間にもう一度ボタンが押されたときに取りこぼす可能性があります。
+<code>AtomicBoolean</code> はこれを 1 操作でやります（7.7 と同じ話）。</p>
+
+<h4>writer スレッド → UI スレッドへの報告</h4>
+
+<pre><code>writer.finish(refreshedAnchorPose) { result -&gt;
+    runOnUiThread { onWriteComplete(result) }
+}</code></pre>
+
+<p><code>runOnUiThread { }</code> は Activity の関数で、
+<strong>ブロックを UI スレッドで実行してもらう</strong>ためのものです。
+書き出し完了はワーカースレッドで分かりますが、
+そこから直接ボタンや文字を触ってはいけないので、UI スレッドに投げ直します。</p>
+
+<h3>8.6 <code>apply</code> の実用例</h3>
+
+<pre><code>binding.surfaceView.apply {
+    preserveEGLContextOnPause = true
+    setEGLContextClientVersion(2)
+    setEGLConfigChooser(8, 8, 8, 8, 16, 0)
+    setRenderer(this@MainActivity)
+    renderMode = GLSurfaceView.RENDERMODE_CONTINUOUSLY
+}</code></pre>
+
+<p>7.4 の <code>apply</code> です。<code>binding.surfaceView.</code> を 5 回書かずに済んでいます。</p>
+
+<p><code>this@MainActivity</code> という書き方に注目してください。
+<code>apply</code> のブロック内では <code>this</code> が <code>surfaceView</code> を指しているので、
+<strong><code>MainActivity</code> 自身を指すには <code>this@MainActivity</code> と書く</strong>必要があります。</p>
+
+<p>これはスコープ関数を重ねると読みにくくなる例でもあります（7.4 の注意書き）。</p>
+
+<h3>8.7 <code>?: return</code> の連打</h3>
+
+<pre><code>override fun onDrawFrame(gl: GL10?) {
+    GLES20.glClear(...)
+    val session = this.session ?: return
+    if (!backgroundRenderer.isInitialized) return
+    ...
+}</code></pre>
+
+<p><code>onDrawFrame</code> は毎秒 30 回呼ばれます。
+初期化前でも、終了処理中でも呼ばれます。
+だから<strong>最初に「まだ無理な状態」を全部弾いてから</strong>本体に入ります。</p>
+
+<p><code>val session = this.session ?: return</code> は 1 行で 2 つのことをしています。</p>
+
+<ol>
+  <li><code>this.session</code>（<code>Session?</code> 型）が null なら、この関数を抜ける</li>
+  <li>null でなければ、<strong>null でないと分かっている <code>Session</code> 型</strong>のローカル変数 <code>session</code> に入れる</li>
+</ol>
+
+<p>2 番目が効いていて、これ以降 <code>session.update()</code> と
+<code>?.</code> なしで書けます。この形はとてもよく使われます。</p>
+
+<h3>8.8 <code>ensureWriter</code> を読む — ここまでの総合</h3>
+
+<pre><code>private fun ensureWriter(): CaptureSessionWriter? {
+    writer?.let { return it }
+    if (finishing) return null
+    val outputRoot = File(getExternalFilesDir(null), "captures")
+    writer = runCatching {
+        CaptureSessionWriter(outputRoot, buildMeta())
+    }.onFailure {
+        Log.e(TAG, "writer を作成できません", it)
+    }.getOrNull()
+    lastSubmitted = -1
+    return writer
+}</code></pre>
+
+<p>1 行ずつ読んでみてください。ここまでに出てきた要素しか使っていません。</p>
+
+<ul>
+  <li><code>writer?.let { return it }</code> … 既にあるならそれを返して終わり（6.3）</li>
+  <li><code>if (finishing) return null</code> … 書き出し中なら作らない（3.5 の早期 return）</li>
+  <li><code>runCatching { ... }</code> … 作成に失敗しても落とさない（7.9）</li>
+  <li><code>.onFailure { ... }</code> … 失敗したらログだけ出す（<code>it</code> は例外）</li>
+  <li><code>.getOrNull()</code> … 成功なら <code>CaptureSessionWriter</code>、失敗なら <code>null</code></li>
+  <li>戻り値の型が <code>CaptureSessionWriter?</code> … 失敗することがあると型に書いてある（1.4）</li>
+</ul>
+
+<p>呼び出し側はこうです。</p>
+
+<pre><code>val writer = ensureWriter() ?: return</code></pre>
+
+<p>「作れなかったら撮影を諦める」が 1 行で書けています（8.7）。</p>
+
+<h3>8.9 ViewBinding — 画面の部品を触る</h3>
+
+<pre><code>binding = ActivityMainBinding.inflate(layoutInflater)
+setContentView(binding.root)
+
+binding.statusText.text = getString(R.string.status_idle)
+binding.shutterButton.setOnClickListener { captureRequested.set(true) }</code></pre>
+
+<p>画面のレイアウトは <code>app/src/main/res/layout/activity_main.xml</code> に XML で書いてあります。
+その XML の中で <code>android:id="@+id/shutterButton"</code> と付けた部品が、
+<code>binding.shutterButton</code> として<strong>型付きで</strong>使えるようになります。</p>
+
+<p><code>ActivityMainBinding</code> というクラスは、<strong>ビルド時に自動生成</strong>されます
+（<code>activity_main.xml</code> → <code>ActivityMainBinding</code>）。
+自分で書くファイルではないので探しても見つかりません。
+有効にしているのは <code>app/build.gradle.kts</code> のこの部分です。</p>
+
+<pre><code>buildFeatures {
+    viewBinding = true
+}</code></pre>
+
+<p><code>R.string.status_idle</code> の <code>R</code> も自動生成されるクラスで、
+<code>res/values/strings.xml</code> に書いた文字列を指します。
+文字列をコードに直接書かず XML に置くのは、後から翻訳や文言修正をしやすくするためです。</p>
+
+<h3>8.10 このファイルの歩き方</h3>
+
+<p>484 行を頭から読む必要はありません。次の順で追うと構造が見えます。</p>
+
+<ol>
+  <li><strong>プロパティ（57〜75 行あたり）</strong> … このクラスが何を持っているか</li>
+  <li><strong><code>onCreate</code></strong> … 画面の組み立てとボタンの配線</li>
+  <li><strong><code>onResume</code> / <code>onPause</code></strong> … 資源の取得と解放</li>
+  <li><strong><code>onDrawFrame</code></strong> … 毎フレームの本体。ここが心臓部</li>
+  <li><strong><code>captureFrame</code></strong> … シャッターを切ったときの処理</li>
+  <li><strong><code>finishSession</code></strong> … 書き出しの開始</li>
+</ol>
+
+<p>横線で挟んだ区切りコメント（<code>// 撮影</code>、<code>// 書き出し</code> など）が
+この順に入れてあるので、折りたたみながら追ってください。</p>
+
+<div class="try">
+  <h4>手を動かす</h4>
+  <ol>
+    <li><code>onCreate</code> / <code>onResume</code> / <code>onPause</code> / <code>onDestroy</code> の先頭に
+      <code>Log.i(TAG, "==== onResume ====")</code> のようなログを入れて、
+      アプリを起動 → ホームボタン → 戻る、と操作したときのログを Logcat で見る。
+      <strong>ライフサイクルを体感するのがこの章で一番効く練習です</strong></li>
+    <li><code>binding.statusText.text = "test"</code> を
+      <code>onDrawFrame</code> の中（GL スレッド）に直接書いてみる。
+      何が起きるか確認してから消す（UI スレッド以外から View を触った場合の挙動）</li>
+    <li><code>val session = this.session ?: return</code> を
+      <code>if (this.session == null) return</code> + <code>val session = this.session!!</code> に
+      書き換えてみる。動きますが、<strong>なぜ元の書き方のほうがよいか</strong>を 1.4 から説明する</li>
+  </ol>
+</div>
+
+<h2 id="c9"><span class="n">9</span> BackgroundRenderer.kt を眺める</h2>
+
+<p>165 行ですが、<strong>中身の大半は OpenGL の作法で、Kotlin の勉強にはあまりなりません</strong>。
+「カメラ映像を画面に貼るためだけのファイル」と割り切って、
+Kotlin として面白い 3 か所だけ見ておきます。</p>
+
+<h3>9.1 <code>private set</code> — 読めるが書けないプロパティ</h3>
+
+<pre><code>var textureId: Int = -1
+    private set</code></pre>
+
+<p>「外から読めるが、書けるのは自分だけ」という宣言です。
+<code>MainActivity</code> は <code>backgroundRenderer.textureId</code> を読みますが、
+代入はできません。</p>
+
+<p><code>val</code> にできないのは、このクラス自身が
+<code>createOnGlThread()</code> の中で値を入れるからです。
+<strong>「外に対しては <code>val</code>、中では <code>var</code>」</strong>を実現する書き方です。</p>
+
+<h3>9.2 getter を持つプロパティ</h3>
+
+<pre><code>val isInitialized: Boolean
+    get() = textureId != -1</code></pre>
+
+<p>値を保存せず、<strong>読まれるたびに計算する</strong>プロパティです。
+<code>isInitialized()</code> という関数にしてもよいのですが、
+「状態を問い合わせるだけ」のものはプロパティにするのが Kotlin の慣習です。</p>
+
+<h3>9.3 raw string — 改行をそのまま書く</h3>
+
+<pre><code>val FRAGMENT_SHADER = """
+    #extension GL_OES_EGL_image_external : require
+    precision mediump float;
+    ...
+""".trimIndent()</code></pre>
+
+<p><code>"""</code> で囲むと、改行やバックスラッシュをそのまま書けます
+（エスケープが不要）。GLSL や SQL のような<strong>別の言語のコードを埋め込む</strong>のに使います。</p>
+
+<p><code>.trimIndent()</code> は、<strong>全行に共通する先頭の空白を取り除く</strong>関数です。
+Kotlin のインデントに合わせて書いたものを、
+実際の文字列としては左詰めにできます。ここでは
+<code>#extension</code> が行頭に来る必要があるため必須です。</p>
+
+<p><code>const val</code> にできないのはこのためです。
+<code>trimIndent()</code> は実行時に動く関数なので、コンパイル時定数にはなりません（4.5）。</p>
+
+<h2 id="c10"><span class="n">10</span> 自分で手を入れる</h2>
+
+<p>読み終えたら、実際に変更してみます。易しい順に並べてあります。
+<strong>1 つ変えるごとにビルドして動かす</strong>のが上達の近道です。</p>
+
+<div class="try">
+  <h4>課題1 — 文字列を変える（難易度 ★）</h4>
+  <p>ボタンの文言を「撮影」から「シャッター」に変える。</p>
+  <p>ヒント: コードは触りません。<code>res/values/strings.xml</code> だけです。
+  8.9 で説明した「文字列を XML に置く」理由を体感してください。</p>
+</div>
+
+<div class="try">
+  <h4>課題2 — 定数を外に出す（難易度 ★）</h4>
+  <p><code>Zip.kt</code> の <code>zos.setLevel(1)</code> の <code>1</code> を、
+  <code>companion object</code> ではなく <code>object Zip</code> 直下の
+  <code>private const val COMPRESSION_LEVEL = 1</code> にする。</p>
+  <p>覚えること: マジックナンバー（意味の分からない数値）に名前を付ける。4.5。</p>
+</div>
+
+<div class="try">
+  <h4>課題3 — 撮影枚数を画面に大きく出す（難易度 ★★）</h4>
+  <p>現在は <code>statusText</code> に小さく出ています。
+  レイアウトに <code>TextView</code> をもう 1 つ足して、枚数だけを大きく表示する。</p>
+  <p>触るファイル: <code>res/layout/activity_main.xml</code> と <code>MainActivity.updateStatus()</code>。</p>
+  <p>覚えること: ViewBinding は XML に id を足すだけで使えるようになる（8.9）。
+  更新は必ず UI スレッドから（8.5）。</p>
+</div>
+
+<div class="try">
+  <h4>課題4 — 撮影枚数の上限を付ける（難易度 ★★）</h4>
+  <p>500 枚を超えたらシャッターを効かなくし、メッセージを出す。</p>
+  <p>ヒント: <code>captureFrame</code> の先頭で
+  <code>writer.submittedCount.get()</code> を見て早期 return（3.5）。
+  メッセージは <code>toast(...)</code> が既にあります。文言は <code>strings.xml</code> に足すこと。</p>
+</div>
+
+<div class="try">
+  <h4>課題5 — JPEG 品質を設定できるようにする（難易度 ★★★）</h4>
+  <p>画面に品質を切り替えるボタンを付け、<code>YuvJpeg.DEFAULT_QUALITY</code> ではなく
+  そのつど指定した値で保存する。</p>
+  <p>触る場所: <code>PendingFrame</code> に <code>quality</code> を足し（4.3 のデフォルト引数）、
+  <code>CaptureSessionWriter.writeFrame</code> から <code>compressToJpeg</code> へ渡す（5.5）。</p>
+  <p>覚えること: 「値を 1 つ増やす」変更が、
+  どのファイルを通って流れていくか。データの経路を追う練習です。</p>
+</div>
+
+<div class="try">
+  <h4>課題6 — depth を保存する（難易度 ★★★★）</h4>
+  <p>README の「未対応」に挙げてある項目です。腰を据えて取り組む課題。</p>
+  <ol>
+    <li><code>createSession()</code> で <code>Config.DepthMode</code> を有効にする
+      （端末が対応しているか確認する分岐が要ります）</li>
+    <li><code>captureFrame</code> で <code>frame.acquireDepthImage16Bits()</code> を呼ぶ。
+      <strong>画像と同じく、使い終わったら即 <code>close()</code></strong>（<code>YuvJpeg.kt</code> の
+      冒頭コメントと同じ理由）</li>
+    <li>16bit の PNG として <code>depth/</code> に保存する</li>
+    <li><code>WrittenFrame</code> に <code>depthPath</code>, <code>depthW</code>, <code>depthH</code> を足す</li>
+    <li><code>TransformsJson.appendFrame</code> で <code>?.let</code> を使って出力する（6.3）</li>
+  </ol>
+  <p>この課題をやり切ると、このアプリの全ファイルに手を入れたことになります。</p>
+</div>
+
+<h2 id="appendix-a"><span class="n">付録A</span> 記号の読み方</h2>
+
+<p>記号は検索しづらいので、ここにまとめておきます。
+「見たことはあるが名前が分からない」ときに戻ってきてください。</p>
+
+<table>
+  <tr><th>記号</th><th>名前</th><th>意味</th><th>本文</th></tr>
+  <tr><td><code>?</code>（型の後ろ）</td><td>null 許容型</td><td><code>String?</code> は null が入りうる</td><td>1.4</td></tr>
+  <tr><td><code>?.</code></td><td>セーフコール</td><td>null なら呼ばずに null を返す</td><td>1.4 / 2.7</td></tr>
+  <tr><td><code>?:</code></td><td>エルビス演算子</td><td>左が null なら右を使う</td><td>1.4</td></tr>
+  <tr><td><code>!!</code></td><td>非 null 断言</td><td>null なら実行時に落ちる。<strong>使わない</strong></td><td>1.4</td></tr>
+  <tr><td><code>-&gt;</code></td><td>矢印</td><td>ラムダの引数と本体の区切り／<code>when</code> の分岐</td><td>2.4 / 6.5</td></tr>
+  <tr><td><code>it</code></td><td>暗黙の引数</td><td>引数が 1 つのラムダの、その引数</td><td>2.4</td></tr>
+  <tr><td><code>$名前</code> <code>${式}</code></td><td>文字列テンプレート</td><td>文字列に値を埋める</td><td>1.5 / 2.8</td></tr>
+  <tr><td><code>&lt;T&gt;</code></td><td>ジェネリクス</td><td>中身の型。<code>List&lt;String&gt;</code></td><td>3.1</td></tr>
+  <tr><td><code>:</code>（クラス名の後）</td><td>継承・実装</td><td><code>class A : B()</code></td><td>8.1</td></tr>
+  <tr><td><code>::</code></td><td>参照演算子</td><td>関数やクラスそのものを指す</td><td>—</td></tr>
+  <tr><td><code>..</code> / <code>until</code></td><td>範囲</td><td><code>0..3</code> は 3 を含む、<code>0 until 3</code> は含まない</td><td>5.1</td></tr>
+  <tr><td><code>in</code></td><td>含む／繰り返し</td><td><code>x in list</code>／<code>for (x in list)</code></td><td>4.6 / 5.1</td></tr>
+  <tr><td><code>is</code></td><td>型判定</td><td><code>x is Task.Write</code></td><td>7.5</td></tr>
+  <tr><td><code>@Volatile</code></td><td>アノテーション</td><td>コンパイラや実行環境への指示</td><td>7.7</td></tr>
+  <tr><td><code>"""</code></td><td>raw string</td><td>改行をそのまま書ける文字列</td><td>9.3</td></tr>
+  <tr><td><code>this@名前</code></td><td>限定 this</td><td>入れ子の中で外側の <code>this</code> を指す</td><td>8.6</td></tr>
+</table>
+
+<h3>紛らわしい組み合わせ</h3>
+
+<table>
+  <tr><th></th><th></th><th>違い</th></tr>
+  <tr><td><code>val</code></td><td><code>var</code></td><td>再代入できない／できる。既定は <code>val</code></td></tr>
+  <tr><td><code>class</code></td><td><code>object</code></td><td>実体を作る／実体が 1 つだけ自動でできる</td></tr>
+  <tr><td><code>class</code></td><td><code>data class</code></td><td><code>==</code> が実体比較／中身の比較</td></tr>
+  <tr><td><code>lateinit var x: T</code></td><td><code>var x: T? = null</code></td><td>必ず入る／本当に無いことがある</td></tr>
+  <tr><td><code>0..n</code></td><td><code>0 until n</code></td><td><code>n</code> を含む／含まない</td></tr>
+  <tr><td><code>@Volatile</code></td><td><code>AtomicInteger</code></td><td>読み書きのみ／増減も安全</td></tr>
+  <tr><td><code>apply</code></td><td><code>let</code></td><td><code>this</code>・対象を返す／<code>it</code>・結果を返す</td></tr>
+</table>
+
+<h2 id="appendix-b"><span class="n">付録B</span> つまずいたときに</h2>
+
+<h3>エラーメッセージの読み方</h3>
+
+<table>
+  <tr><th>よく出るもの</th><th>意味と対処</th></tr>
+  <tr><td><code>Unresolved reference: xxx</code></td>
+      <td><code>xxx</code> が見つからない。<code>import</code> 漏れか、綴り間違い。
+      Android Studio の <code>Alt + Enter</code> で import を提案してくれます</td></tr>
+  <tr><td><code>Type mismatch: inferred type is String? but String was expected</code></td>
+      <td>null かもしれない値を、null を許さない場所に渡した。
+      <code>?:</code> で既定値を与えるか、早期 return する（1.4）</td></tr>
+  <tr><td><code>Val cannot be reassigned</code></td>
+      <td><code>val</code> に再代入した。本当に変わる値なら <code>var</code> にする（1.1）</td></tr>
+  <tr><td><code>'when' expression must be exhaustive</code></td>
+      <td><code>sealed class</code> の枝が足りない。足した型に対応する分岐を書く（7.5）</td></tr>
+  <tr><td><code>lateinit property xxx has not been initialized</code></td>
+      <td><code>lateinit</code> に値を入れる前に使った。<code>onCreate</code> より前に触っていないか確認（8.3）</td></tr>
+  <tr><td><code>CalledFromWrongThreadException</code></td>
+      <td>UI スレッド以外から View を触った。<code>runOnUiThread { }</code> で包む（8.5）</td></tr>
+</table>
+
+<h3>ログを見る</h3>
+
+<p>Android Studio 下部の <strong>Logcat</strong> タブで、端末のログが見られます。
+検索欄にこのアプリのタグを入れると、自分のログだけ絞り込めます。</p>
+
+<pre><code>Log.i(TAG, "ここまで来た")           // 情報
+Log.w(TAG, "怪しい")                  // 警告
+Log.e(TAG, "失敗した", exception)     // エラー（例外も一緒に出せる）</code></pre>
+
+<p><code>println</code> ではなく <code>Log</code> を使います。
+<code>TAG</code> は各ファイルの <code>companion object</code> に定義してあります（7.10）。</p>
+
+<div class="note">
+  <p><strong>クラッシュしたら、Logcat の赤い行を上から読むこと。</strong>
+  一番上に例外の種類とメッセージ、その下に「どのファイルの何行目か」が並んでいます。
+  自分の書いたファイル名（<code>MainActivity.kt</code> など）が出てくる行を探すのが早道です。</p>
+</div>
+
+<h3>調べる場所</h3>
+
+<ul>
+  <li><strong>Kotlin の文法</strong> … <a href="https://kotlinlang.org/docs/home.html">kotlinlang.org</a>（公式）。
+    左のメニューが文法の目次になっています</li>
+  <li><strong>その場で試す</strong> … <a href="https://play.kotlinlang.org">play.kotlinlang.org</a>。
+    Android Studio を起動せずに文法を確かめられます</li>
+  <li><strong>Android の API</strong> … <a href="https://developer.android.com/reference">developer.android.com/reference</a></li>
+  <li><strong>このアプリの設計判断</strong> … リポジトリの <code>README.md</code>。
+    「なぜそうしたか」はコード中のコメントにも書いてあります</li>
+</ul>
+
+<h3>最後に</h3>
+
+<p>このアプリは<strong>一度もコンパイルされていない状態で書かれています</strong>（README の「状態」参照）。
+つまり、あなたが最初にビルドしたとき、エラーが出る可能性があります。</p>
+
+<p>それは失敗ではなく、<strong>最初の練習問題</strong>だと思ってください。
+エラーメッセージを読み、該当箇所を開き、この解説書の該当章に戻る。
+それが実際の開発でやっていることそのものです。</p>
+
+<footer>
+  教材として読むソースコードは <code>app/src/main/java/com/example/arcorefetcher/</code> 以下にあります。<br>
+  ビルドと撮影の手順は <code>docs/setup_guide.html</code>、設計の背景は <code>README.md</code> にあります。
+</footer>
+
+</div>
+</body>
+</html>
