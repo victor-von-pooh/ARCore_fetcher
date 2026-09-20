@@ -223,6 +223,42 @@
   画面の指示に従って入れてください。これは Google 製の公式コンポーネントです。</p>
 </div>
 
+<h3>Sync と Build は別物</h3>
+
+<p>下部パネルのタブが <strong>Sync</strong> と <strong>Build Output</strong> に分かれています。
+ここを取り違えると「成功したのに何も起きない」と混乱するので、先に区別しておきます。</p>
+
+<table>
+  <tr><th>タブ</th><th>何をしている</th><th>いつ走るか</th></tr>
+  <tr><td><strong>Sync</strong></td>
+      <td>設定ファイル（<code>*.gradle.kts</code>）を読み、必要なライブラリを取ってくる。
+        <strong>あなたが書いた Kotlin のコードには触らない</strong></td>
+      <td>プロジェクトを開いたとき、設定を変えたとき</td></tr>
+  <tr><td><strong>Build Output</strong></td>
+      <td>Kotlin のコードを実際にコンパイルし、アプリを組み立てる</td>
+      <td><strong>▶ Run</strong> を押したとき</td></tr>
+</table>
+
+<p>Sync が <code>BUILD SUCCESSFUL</code> になっても、コードはまだ一行もコンパイルされていません。
+コンパイルのエラーは <strong>▶ Run</strong> を押して初めて出ます。</p>
+
+<h3>「おすすめ」のポップアップは無視してよい</h3>
+
+<p>右下に通知が出ることがありますが、<strong>エラーではありません</strong>。
+青い <code>ⓘ</code> が付いているものは提案です。赤い <code>!</code> だけがエラーです。</p>
+
+<table>
+  <tr><th>よく出る通知</th><th>どうするか</th></tr>
+  <tr><td><strong>Project update recommended</strong><br>（AGP のアップグレード提案）</td>
+      <td><strong>今はやらない。</strong> <code>˅</code> で畳んで閉じる。
+        アプリが実機で動くのを確認するまでは、ツールチェーンのバージョンを動かさないこと。
+        動かすと、次にエラーが出たときコードのせいか更新のせいか切り分けられなくなります</td></tr>
+  <tr><td><strong>Migrate to Gradle Daemon toolchain</strong></td>
+      <td><code>Ignore</code> を押す。このアプリには必要ありません</td></tr>
+  <tr><td><strong>New Minor Gradle Version Available</strong></td>
+      <td>そのままでよい。<code>ⓘ</code> の情報表示です</td></tr>
+</table>
+
 <h2 id="s6"><span class="n">6</span> 撮影する</h2>
 
 <p>アプリを起動するとカメラ映像が出ます。画面上部に現在の状態が表示されます。</p>
