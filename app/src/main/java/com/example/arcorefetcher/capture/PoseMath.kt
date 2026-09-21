@@ -51,7 +51,11 @@ object PoseMath {
         return FloatArray(4) { (q[it] / n).toFloat() }
     }
 
-    /** 回転を単位クォータニオンに落とした pose。root Anchor の生成に使う。 */
-    fun withIdentityRotation(pose: Pose): Pose =
-        Pose(translation(pose), floatArrayOf(0f, 0f, 0f, 1f))
+    /** 2 つの pose の平行移動成分の距離 [m]。ウォームアップ判定の移動量に使う。 */
+    fun distance(a: Pose, b: Pose): Float {
+        val dx = a.tx() - b.tx()
+        val dy = a.ty() - b.ty()
+        val dz = a.tz() - b.tz()
+        return sqrt((dx * dx + dy * dy + dz * dz).toDouble()).toFloat()
+    }
 }

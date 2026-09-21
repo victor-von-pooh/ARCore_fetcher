@@ -10,7 +10,12 @@ import com.google.ar.core.Pose
  * 読み手は気づかないまま誤った座標系で解釈する。
  */
 object CaptureSpec {
-    /** 出力ファイルに書き込む形式識別子。破壊的変更のとき major を上げる。 */
+    /**
+     * 出力ファイルに書き込む形式識別子。破壊的変更のとき major を上げる。
+     *
+     * `tracking_elapsed_ns` / `point_count` は**省略可能な追加項目**なので、
+     * これらを足しても既存の読み手は壊れない。よって識別子は据え置く。
+     */
     const val SPEC_VERSION = "arcore-fetcher/capture/1.0"
     const val CAMERA_MODEL = "PINHOLE"
 
@@ -73,13 +78,22 @@ data class CaptureMeta(
     /** 本アプリは Frame.acquireCameraImage() の YUV を JPEG 化するので cpu_image 固定。 */
     val captureMode: String = "cpu_image",
     /**
-     * anchor 相対で保持した pose を、終了直前に読み直した root Anchor の pose で
-     * world へ戻してから書き出す。最終的な座標系は ARCore world そのものなので
+     * 各フレームの姿勢はフレーム専用 Anchor として ARCore に預け、
+     * 終了直前に読み直してから書き出す。回収した pose は ARCore world 系なので
      * "anchor:root" ではなく "session"。
      */
     val worldOrigin: String = "session",
+    /**
+     * **全フレーム**の姿勢を終了直前に Anchor から読み直せたか。
+     *
+     * Anchor を張れなかった・終了時に TRACKING でなかったフレームが 1 枚でもあると
+     * false になる。その場合、該当フレームは撮影時点の姿勢のまま出力される。
+     */
     val originRefreshedAtEnd: Boolean = true,
 )
+
+/** Anchor を張れなかったフレームの [PendingFrame.anchorIndex]。 */
+const val NO_ANCHOR = -1
 
 /**
  * GL スレッドが writer スレッドへ渡す 1 フレーム分の荷物。
@@ -93,11 +107,19 @@ class PendingFrame(
     val imageWidth: Int,
     val imageHeight: Int,
     /**
-     * **anchor 相対**の camera pose。
-     * world 絶対姿勢はセッション終了時にドリフト補正されうるため、
-     * 撮影時点では確定させない。
+     * このフレーム専用に張った Anchor の番号。[NO_ANCHOR] なら Anchor を張れていない。
+     *
+     * world 絶対姿勢は撮影時点では確定させない。ARCore はループクローズ・再ローカライズの
+     * たびに Anchor の pose を遡及的に補正するので、**書き出し直前に番号で引き直す**。
      */
-    val poseRelativeToAnchor: Pose,
+    val anchorIndex: Int,
+    /**
+     * 撮影時点の world 姿勢。
+     *
+     * Anchor から pose を回収できなかったときにだけ使う保険であって、通常は使われない。
+     * （Anchor を張れなかった／終了時に Anchor が TRACKING でなかった場合）
+     */
+    val poseAtCapture: Pose,
     val trackingState: String,
     val trackingFailureReason: String,
     val intrinsics: Intrinsics,
@@ -106,18 +128,30 @@ class PendingFrame(
      * shared_camera を入れるときに使う。cpu_image では null。
      */
     val intrinsicsOverride: Intrinsics? = null,
+    /**
+     * TRACKING が連続し始めてからの経過時間。
+     *
+     * VIO は収束しきる前でも TRACKING を報告するため、tracking_state だけでは
+     * 初期化区間のフレームを下流で見分けられない。その切り分け用。
+     */
+    val trackingElapsedNs: Long? = null,
+    /** 特徴点数。少ないフレームは姿勢推定の信頼度が低い。 */
+    val pointCount: Int? = null,
     val exposureNs: Long? = null,
     val iso: Int? = null,
 )
 
-/** JPEG を書き終えたフレーム。pose はまだ anchor 相対。 */
+/** JPEG を書き終えたフレーム。world 姿勢はまだ確定していない（[anchorIndex] で引く）。 */
 class WrittenFrame(
     val filePath: String,
     val timestampNs: Long,
-    val poseRelativeToAnchor: Pose,
+    val anchorIndex: Int,
+    val poseAtCapture: Pose,
     val trackingState: String,
     val trackingFailureReason: String,
     val intrinsicsOverride: Intrinsics?,
+    val trackingElapsedNs: Long?,
+    val pointCount: Int?,
     val exposureNs: Long?,
     val iso: Int?,
 )

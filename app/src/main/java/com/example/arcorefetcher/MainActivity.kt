@@ -20,6 +20,7 @@ import com.example.arcorefetcher.capture.CaptureMeta
 import com.example.arcorefetcher.capture.CaptureSessionWriter
 import com.example.arcorefetcher.capture.CaptureSpec
 import com.example.arcorefetcher.capture.Intrinsics
+import com.example.arcorefetcher.capture.NO_ANCHOR
 import com.example.arcorefetcher.capture.PendingFrame
 import com.example.arcorefetcher.capture.PoseMath
 import com.example.arcorefetcher.capture.YuvJpeg
@@ -33,6 +34,7 @@ import com.google.ar.core.CameraConfigFilter
 import com.google.ar.core.CameraIntrinsics
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
+import com.google.ar.core.Pose
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
 import com.google.ar.core.exceptions.CameraNotAvailableException
@@ -73,7 +75,29 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     /** GL スレッドからのみ触る。 */
     private var writer: CaptureSessionWriter? = null
-    private var rootAnchor: Anchor? = null
+
+    /**
+     * 撮影 1 枚につき 1 つ張る Anchor。添字が [PendingFrame.anchorIndex] になる。
+     *
+     * ARCore はこの Anchor を追跡し続け、ループクローズ・再ローカライズのたびに
+     * pose を**遡及的に**補正する。書き出し直前に読み直すことで、
+     * VIO の収束前に撮ったフレームも収束後の座標系へ引き直される。
+     */
+    private val frameAnchors = ArrayList<Anchor>()
+
+    /** TRACKING が連続し始めたフレームの timestamp。切れたら 0 に戻す。 */
+    private var trackingSinceNs = 0L
+    /** TRACKING が連続し始めた時点のカメラ姿勢。移動量の基準。 */
+    private var warmupOrigin: Pose? = null
+    private var warmupElapsedNs = 0L
+    private var warmupMovedM = 0f
+
+    /**
+     * VIO が収束したとみなせるか。false の間はシャッターを無効にする。
+     * UI スレッドからも読むので volatile。
+     */
+    @Volatile
+    private var warmedUp = false
 
     @Volatile
     private var finishing = false
@@ -93,6 +117,8 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         }
 
         binding.statusText.text = getString(R.string.status_idle)
+        // ウォームアップが済むまで撮らせない（VIO 収束前の姿勢は救えないため）。
+        binding.shutterButton.isEnabled = false
         binding.shutterButton.setOnClickListener { captureRequested.set(true) }
         binding.finishButton.setOnClickListener {
             if (finishing) return@setOnClickListener
@@ -162,6 +188,8 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     override fun onDestroy() {
         // Session の close も GL スレッドが触らなくなってから。
+        // 書き出さずに終了した場合はここが Anchor の最後の解放機会。
+        detachFrameAnchors()
         session?.close()
         session = null
         super.onDestroy()
@@ -285,11 +313,10 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         backgroundRenderer.draw(frame)
 
         val camera = frame.camera
-        // root Anchor はセッション冒頭に張る。writer は初回シャッターまで作らない。
-        ensureRootAnchor(session, camera)
+        updateWarmup(frame, camera)
 
         if (captureRequested.getAndSet(false)) {
-            runCatching { captureFrame(frame, camera) }
+            runCatching { captureFrame(session, frame, camera) }
                 .onFailure { Log.e(TAG, "撮影に失敗", it) }
         }
         if (finishRequested.getAndSet(false)) {
@@ -313,29 +340,64 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         }.onFailure {
             Log.e(TAG, "writer を作成できません", it)
         }.getOrNull()
-        lastSubmitted = -1
+        lastStatus = null
         return writer
     }
 
     /**
-     * セッション冒頭に root Anchor を 1 つだけ張る。
+     * VIO が収束したかを見張り、収束するまでシャッターを無効にする。
      *
-     * 回転を単位クォータニオンにして生成することで、ARCore world の重力アライン
-     * （`+Y` = 上）がそのまま anchor 座標系に引き継がれる。
+     * ARCore は VIO が収束しきる前でも `TRACKING` を報告する。その区間で撮ると、
+     * 画像に写っているのに姿勢は見当違いの方向を向いた、下流から検出できない
+     * フレームができる。[TrackingState.TRACKING] の**継続時間**と、その間に
+     * 実際に動いた**距離**の両方を条件にして防ぐ。
+     *
+     * 距離を見るのは、三角測量に足るベースラインを踏まないと VIO の
+     * スケールと姿勢が定まらないため。端末を置いたまま待っても収束しない。
+     *
+     * トラッキングが一度切れたら計測はやり直す。再ローカライズ直後も同じく
+     * 座標系が動くので、初回と同じだけ待たせる。
      */
-    private fun ensureRootAnchor(session: Session, camera: Camera) {
-        if (rootAnchor != null) return
-        if (camera.trackingState != TrackingState.TRACKING) return
-        rootAnchor = runCatching {
-            session.createAnchor(PoseMath.withIdentityRotation(camera.pose))
-        }.onFailure {
-            Log.e(TAG, "root Anchor を張れません", it)
-        }.getOrNull()
+    private fun updateWarmup(frame: Frame, camera: Camera) {
+        if (camera.trackingState != TrackingState.TRACKING) {
+            trackingSinceNs = 0L
+            warmupOrigin = null
+            warmupElapsedNs = 0L
+            warmupMovedM = 0f
+            setWarmedUp(false)
+            return
+        }
+
+        val pose = camera.pose
+        val origin = warmupOrigin
+        if (origin == null) {
+            trackingSinceNs = frame.timestamp
+            warmupOrigin = pose
+            warmupElapsedNs = 0L
+            warmupMovedM = 0f
+            return
+        }
+
+        warmupElapsedNs = frame.timestamp - trackingSinceNs
+        // 最大到達距離で見る。往復して戻ってきてもベースラインは踏んでいる。
+        warmupMovedM = maxOf(warmupMovedM, PoseMath.distance(pose, origin))
+        setWarmedUp(warmupElapsedNs >= WARMUP_MIN_NS && warmupMovedM >= WARMUP_MIN_MOVE_M)
     }
 
-    private fun captureFrame(frame: Frame, camera: Camera) {
-        val anchor = rootAnchor
-        if (anchor == null) {
+    /** GL スレッドから呼ぶ。変化したときだけ UI へ渡す。 */
+    private fun setWarmedUp(value: Boolean) {
+        if (warmedUp == value) return
+        warmedUp = value
+        runOnUiThread { applyShutterEnabled() }
+    }
+
+    private fun applyShutterEnabled() {
+        binding.shutterButton.isEnabled = warmedUp && !finishing
+    }
+
+    private fun captureFrame(session: Session, frame: Frame, camera: Camera) {
+        // ボタンは無効にしてあるが、無効化が届く前のタップが残りうる。
+        if (!warmedUp || camera.trackingState != TrackingState.TRACKING) {
             toast(getString(R.string.msg_waiting_tracking))
             return
         }
@@ -364,9 +426,19 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         // getImageIntrinsics() と軸が合わないため使ってはいけない。
         val cameraPose = camera.pose
 
-        // world 絶対ではなく anchor 相対で保持する。
-        // world 座標系はループクローズで後から書き換わる。
-        val relative = anchor.pose.inverse().compose(cameraPose)
+        // world 絶対姿勢をここで確定させない。このフレーム専用の Anchor として
+        // ARCore に預け、書き出し直前に読み直す。ARCore はループクローズ・
+        // 再ローカライズのたびに Anchor の pose を遡及的に補正するので、
+        // 撮影後に起きた補正もフレーム単位で反映される。
+        val anchor = runCatching { session.createAnchor(cameraPose) }
+            .onFailure { Log.e(TAG, "フレーム Anchor を張れません", it) }
+            .getOrNull()
+        val anchorIndex = if (anchor == null) {
+            NO_ANCHOR
+        } else {
+            frameAnchors += anchor
+            frameAnchors.lastIndex
+        }
 
         // TRACKING 以外も捨てずに記録する。選別は撮影後に行う。
         writer.submitFrame(
@@ -375,13 +447,29 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                 nv21 = nv21,
                 imageWidth = width,
                 imageHeight = height,
-                poseRelativeToAnchor = relative,
+                anchorIndex = anchorIndex,
+                poseAtCapture = cameraPose,
                 trackingState = CaptureSpec.trackingStateOf(camera.trackingState.name),
                 trackingFailureReason = CaptureSpec.failureReasonOf(camera.trackingFailureReason.name),
                 intrinsics = intrinsicsFor(camera.imageIntrinsics, width, height),
+                trackingElapsedNs = warmupElapsedNs,
+                pointCount = pointCountOf(frame),
             )
         )
     }
+
+    /**
+     * このフレームで見えている特徴点の数。取れなければ null。
+     *
+     * 姿勢そのものの正しさは示さないが、特徴点が乏しいフレームは推定が弱い。
+     * 下流で品質の切り分けに使う。
+     */
+    private fun pointCountOf(frame: Frame): Int? = runCatching {
+        // points は 1 点あたり (x, y, z, confidence) の 4 float。
+        frame.acquirePointCloud().use { it.points.remaining() / 4 }
+    }.onFailure {
+        Log.w(TAG, "点群を取得できません", it)
+    }.getOrNull()
 
     /**
      * intrinsics は **実際に保存した画像の解像度**に対応させる。
@@ -428,24 +516,38 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             binding.statusText.text = getString(R.string.msg_writing)
         }
 
-        // 終了直前に root Anchor の pose を読み直す。
+        // 終了直前に各フレームの Anchor の pose を読み直す。
         // ここで読んだ pose には、それまでのループクローズ・再ローカライズによる
         // 遡及補正が反映されている。
-        val anchor = rootAnchor
-        val refreshedAnchorPose = anchor?.pose
+        //
+        // TRACKING でない Anchor の pose は ARCore の規約上未定義なので回収しない。
+        // その場合は撮影時点の姿勢がそのまま出力され、
+        // origin_refreshed_at_end に false が立つ。
+        val refreshed: List<Pose?> = frameAnchors.map { anchor ->
+            if (anchor.trackingState == TrackingState.TRACKING) anchor.pose else null
+        }
 
-        writer.finish(refreshedAnchorPose) { result ->
+        writer.finish(refreshed) { result ->
             runOnUiThread { onWriteComplete(result) }
         }
 
-        anchor?.detach()
-        rootAnchor = null
+        // pose は回収済みなので、ここで解放してよい。
+        detachFrameAnchors()
+    }
+
+    /** Anchor を ARCore へ返す。二重 detach しても落ちないように握りつぶす。 */
+    private fun detachFrameAnchors() {
+        frameAnchors.forEach { runCatching { it.detach() } }
+        frameAnchors.clear()
     }
 
     private fun onWriteComplete(result: Result<File>) {
         finishing = false
-        binding.shutterButton.isEnabled = true
+        // シャッターはウォームアップ状態に従う。無条件に戻すと、
+        // 収束していないのに撮れてしまう。
+        applyShutterEnabled()
         binding.finishButton.isEnabled = true
+        lastStatus = null
         binding.statusText.text = getString(R.string.status_idle)
 
         result.onSuccess { zip ->
@@ -479,29 +581,49 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         arcoreVersion = arCoreVersion(),
     )
 
-    /** Google Play Services for AR のバージョン。取れなければクライアントライブラリ版。 */
+    /**
+     * 実機に入っている Google Play Services for AR のバージョン。
+     *
+     * 取得に失敗したときは、**ランタイム版と取り違えられない文字列**を返す。
+     * ここでクライアントライブラリの版番号をそのまま返すと、
+     * JSON には実機と無関係な値がもっともらしく残ってしまう。
+     */
     private fun arCoreVersion(): String = runCatching {
         @Suppress("DEPRECATION")
         packageManager.getPackageInfo(AR_CORE_PACKAGE, 0).versionName
-    }.getOrNull() ?: AR_CORE_CLIENT_VERSION
+    }.getOrNull() ?: "unknown (client $AR_CORE_CLIENT_VERSION)"
 
     private fun updateStatus(camera: Camera) {
         if (finishing) return
+        val text = if (warmedUp) capturingStatusText(camera) else warmupStatusText(camera)
+        // ウォームアップ中は毎フレーム値が動くので、文字列が変わったときだけ渡す。
+        if (text == lastStatus) return
+        lastStatus = text
+        runOnUiThread { binding.statusText.text = text }
+    }
+
+    private fun capturingStatusText(camera: Camera): String {
         val writer = this.writer
         val submitted = writer?.submittedCount?.get() ?: 0
         val tracking = writer?.trackingCount?.get() ?: 0
-        if (submitted == lastSubmitted && camera.trackingState == lastTrackingState) return
-        lastSubmitted = submitted
-        lastTrackingState = camera.trackingState
-        runOnUiThread {
-            binding.statusText.text =
-                getString(R.string.status_frames, submitted, tracking) +
-                    "  /  " + camera.trackingState.name
-        }
+        return getString(R.string.status_frames, submitted, tracking) +
+            "  /  " + camera.trackingState.name
     }
 
-    private var lastSubmitted = -1
-    private var lastTrackingState: TrackingState? = null
+    /** 収束まであと何が足りないかを出す。「待てばいい」のか「動かすべき」のかを分ける。 */
+    private fun warmupStatusText(camera: Camera): String {
+        if (camera.trackingState != TrackingState.TRACKING) {
+            return getString(R.string.status_waiting_tracking)
+        }
+        val sec = (warmupElapsedNs / 1_000_000_000.0).coerceAtMost(WARMUP_MIN_SEC)
+        return getString(
+            R.string.status_warmup,
+            sec, WARMUP_MIN_SEC,
+            warmupMovedM.coerceAtMost(WARMUP_MIN_MOVE_M), WARMUP_MIN_MOVE_M,
+        )
+    }
+
+    private var lastStatus: String? = null
 
     private fun toast(message: String) {
         runOnUiThread { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
@@ -511,6 +633,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         const val TAG = "ARCoreFetcher"
         const val REQUEST_CAMERA = 1001
         const val AR_CORE_PACKAGE = "com.google.ar.core"
+
+        /** `app/build.gradle.kts` の `com.google.ar:core` と揃えること。 */
         const val AR_CORE_CLIENT_VERSION = "1.47.0"
+
+        /** ウォームアップの条件: TRACKING の連続時間と、その間の最大移動距離。 */
+        const val WARMUP_MIN_SEC = 3.0
+        const val WARMUP_MIN_MOVE_M = 0.15f
+        // const にすると toLong() が定数式でないと言われるので通常の val。
+        val WARMUP_MIN_NS = (WARMUP_MIN_SEC * 1_000_000_000).toLong()
     }
 }

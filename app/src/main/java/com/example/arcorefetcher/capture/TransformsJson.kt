@@ -12,16 +12,17 @@ import java.util.Locale
 object TransformsJson {
 
     /**
-     * @param frames JPEG 書き出し済みのフレーム。pose は **anchor 相対**。
-     * @param rootAnchorPose セッション終了直前に読み直した root Anchor の pose。
-     *   これを掛け戻すことで、ドリフト補正後の world 座標系での姿勢になる。
-     *   anchor を張れないまま終わった場合は null（= 恒等変換）。
+     * @param frames JPEG 書き出し済みのフレーム。world 姿勢はまだ確定していない。
+     * @param refreshedPoses セッション終了直前に各フレームの Anchor から読み直した pose。
+     *   添字は [WrittenFrame.anchorIndex]。ここに入っているのが ARCore の遡及補正を
+     *   反映した world 姿勢で、これが本来の出力値。読み直せなかったフレームだけ
+     *   [WrittenFrame.poseAtCapture] へ退避する。
      */
     fun build(
         meta: CaptureMeta,
         intrinsics: Intrinsics,
         frames: List<WrittenFrame>,
-        rootAnchorPose: Pose?,
+        refreshedPoses: List<Pose?>,
     ): String {
         val sb = StringBuilder(1024 + frames.size * 512)
         sb.append("{\n")
@@ -67,7 +68,7 @@ object TransformsJson {
 
         sb.append("  ").append(str("frames")).append(": [\n")
         frames.forEachIndexed { i, frame ->
-            appendFrame(sb, frame, rootAnchorPose)
+            appendFrame(sb, frame, refreshedPoses)
             sb.append(if (i == frames.lastIndex) "\n" else ",\n")
         }
         sb.append("  ]\n")
@@ -84,13 +85,10 @@ object TransformsJson {
         sb.append(indent).append(str("h")).append(": ").append(it.h).append(",\n")
     }
 
-    private fun appendFrame(sb: StringBuilder, frame: WrittenFrame, rootAnchorPose: Pose?) {
-        // 終了直前に読み直した anchor pose を掛け戻して world へ戻す。
-        val world = if (rootAnchorPose == null) {
-            frame.poseRelativeToAnchor
-        } else {
-            rootAnchorPose.compose(frame.poseRelativeToAnchor)
-        }
+    private fun appendFrame(sb: StringBuilder, frame: WrittenFrame, refreshedPoses: List<Pose?>) {
+        // フレーム専用 Anchor から読み直した pose がそのまま world 姿勢。
+        // 読み直せなかったフレームだけ撮影時点の姿勢で埋める。
+        val world = refreshedPoses.getOrNull(frame.anchorIndex) ?: frame.poseAtCapture
         val m = PoseMath.toRowMajorMatrix(world)
         val t = PoseMath.translation(world)
         val q = PoseMath.quaternionXyzw(world)
@@ -117,6 +115,15 @@ object TransformsJson {
             .append(str(frame.trackingState)).append(",\n")
         sb.append("      ").append(str("tracking_failure_reason")).append(": ")
             .append(str(frame.trackingFailureReason))
+
+        // VIO は収束しきる前でも TRACKING を報告する。下流が初期化区間のフレームを
+        // 見分けられるように、収束の手がかりを省略可能な項目として残す。
+        frame.trackingElapsedNs?.let {
+            sb.append(",\n      ").append(str("tracking_elapsed_ns")).append(": ").append(it)
+        }
+        frame.pointCount?.let {
+            sb.append(",\n      ").append(str("point_count")).append(": ").append(it)
+        }
 
         frame.intrinsicsOverride?.let {
             sb.append(",\n\n")

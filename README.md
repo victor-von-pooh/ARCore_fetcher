@@ -73,7 +73,9 @@ capture_20260920T103104/
       "translation": [0.12, 1.45, -0.33],
       "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
       "tracking_state": "TRACKING",
-      "tracking_failure_reason": "NONE"
+      "tracking_failure_reason": "NONE",
+      "tracking_elapsed_ns": 4183000000,
+      "point_count": 312
     }
   ]
 }
@@ -95,14 +97,31 @@ intrinsics はセッション中不変なのでトップレベルに置き、
 `tracking_state` と `tracking_failure_reason` を各フレームに残してあるので、
 選別は書き出したデータを読む側で行う。
 
+### 品質シグナル（省略可能）
+
+`tracking_state` は**姿勢の正しさを表さない**。ARCore は VIO が収束しきる前でも
+`TRACKING` を返すため、このフィールドだけでは初期化区間のフレームを見分けられない。
+切り分け用に次の 2 つを各フレームに残す。どちらも省略可能な追加項目なので、
+読まない実装が壊れることはない。
+
+| キー | 内容 |
+|---|---|
+| `tracking_elapsed_ns` | `TRACKING` が連続し始めてからの経過時間。小さいフレームほど収束途中 |
+| `point_count` | そのフレームで見えていた特徴点の数。少ないほど推定が弱い |
+
+撮影側でもウォームアップゲート（後述）で収束前のフレームは撮らせないので、
+通常これらの値で弾く必要はない。異常を疑ったときの手がかりとして残してある。
+
 ## 使い方
 
 1. アプリを起動してカメラ権限を許可する
 2. 端末をゆっくり動かし、画面上部の表示が `TRACKING` になるのを待つ
-   （この時点でセッションの root Anchor が張られる）
-3. **撮影** ボタンで 1 枚ずつ撮る。対象のまわりを回り込みながら、
+3. `TRACKING` になってもまだ撮れない。**撮影** ボタンは
+   「`TRACKING` が 3 秒継続」かつ「その間に 15 cm 以上動いた」を満たすまで無効。
+   上部に収束の進み具合が出るので、条件が揃うまで端末を動かし続ける
+4. **撮影** ボタンで 1 枚ずつ撮る。対象のまわりを回り込みながら、
    視点を変えて 30〜100 枚程度
-4. **書き出し** ボタンで `transforms.json` と ZIP を作り、共有シートで転送する
+5. **書き出し** ボタンで `transforms.json` と ZIP を作り、共有シートで転送する
 
 ## 設計
 
@@ -112,17 +131,51 @@ ARCore の VIO はループクローズ・再ローカライズで**過去の wo
 撮影時点で記録した world 絶対姿勢はセッション終了時には陳腐化している可能性があるので、
 確定させてはいけない。本アプリは次の 2 つを両方行う。
 
-1. セッション冒頭に root Anchor を 1 つ張り、各フレームを
-   `anchor.pose.inverse().compose(camera.pose)`（**anchor 相対**）で保持する
-2. セッション終了直前に root Anchor の `pose` を読み直し、それを全フレームに掛け戻す
+1. **シャッターのたびに** `session.createAnchor(camera.pose)` で
+   そのフレーム専用の Anchor を張り、姿勢を ARCore に預ける
+2. セッション終了直前に**全 Anchor の `pose` を読み直し**、それをそのまま書き出す
 
-root Anchor は回転を単位クォータニオンにして生成する。これにより ARCore world の
-重力アライン（`+Y` = 上）が anchor 座標系に引き継がれる。
-掛け戻した最終出力は ARCore world 座標系そのものなので、
+回収した pose は ARCore world 座標系そのものなので、
 `capture.world_origin` は `"session"`、`origin_refreshed_at_end` は `true`。
 
-トラッキングが一度も確立せず Anchor を張れないまま終わったセッションでは、
-補正をしていないので `origin_refreshed_at_end` に正直に `false` が入る。
+**なぜフレームごとなのか。** 以前は root Anchor を 1 つだけ張り、その pose 差分を
+全フレームに一律で掛け戻していた。これは「セッション全体の座標系が後からずれる」
+ドリフトには効くが、補正の自由度が**剛体変換 1 つ分**しかない。
+
+VIO の初期化区間では、個々のフレームの姿勢推定そのものが誤っていて、
+**その誤差はフレームごとに違う**。撮影時点で相対姿勢を確定させてしまうと、
+ARCore がその後に行う遡及補正が反映されず、誤差が恒久的に焼き込まれる。
+実機データでは先頭 3 フレームが使い物にならなかった（視線が被写体から
+114.8° / 75.9° / 69.0° ずれ、4 フレーム目以降は 4〜6° に収束）。
+フレームごとに Anchor を張れば、遡及補正がフレーム単位で個別に適用される。
+
+Anchor は pose を回収したあと必ず `detach()` する。
+書き出さずにアプリを終了した場合は `onDestroy()` が最後の解放機会になる。
+
+Anchor の数は撮影枚数と等しくなる。ARCore は多数の Anchor を追跡すると負荷が上がるので、
+数百枚規模のセッションでは描画が重くならないか確認すること
+（想定している 30〜100 枚では問題にならない）。
+
+Anchor を張れなかった、または終了時にその Anchor が `TRACKING` でなかったフレームは、
+撮影時点の姿勢のまま出力される（ARCore の規約上、`TRACKING` でない Anchor の
+pose は未定義なので読まない）。そのフレームが 1 枚でもあれば
+`origin_refreshed_at_end` に正直に `false` が入る。
+
+### ウォームアップゲート
+
+上のフレームごと Anchor 化は「撮ってしまったデータを直す」対策で、
+撮影中に VIO が収束していないこと自体は変えられない。
+そこで**収束するまでシャッターを無効にする**。
+
+条件は `MainActivity` の `WARMUP_MIN_SEC` = 3.0 秒 と `WARMUP_MIN_MOVE_M` = 0.15 m。
+`TrackingState.TRACKING` が連続した時間と、その間の最大移動距離の**両方**を見る。
+距離も見るのは、三角測量に足るベースラインを踏まないと VIO のスケールと姿勢が
+定まらないため。端末を置いたまま 3 秒待っても収束しない。
+
+`tracking_state` だけでは判定できない。ARCore は収束前でも `TRACKING` を報告する。
+
+トラッキングが一度切れたら計測はやり直す。再ローカライズ直後も座標系が動くので、
+初回と同じだけ待たせる。
 
 ### スレッド
 
@@ -141,7 +194,8 @@ JPEG エンコードとディスク書き込みは専用ワーカースレッド
 | `Pose.toMatrix()` は列優先。JSON へは行優先に転置する | `PoseMath.toRowMajorMatrix()` |
 | quaternion は `(x,y,z,w)` 順のまま出力（`wxyz` へ並べ替えない） | `PoseMath.quaternionXyzw()` |
 | intrinsics は実際に保存した画像の解像度に対応（リサイズ時は同率スケール） | `MainActivity.intrinsicsFor()` |
-| pose は anchor 相対、終了直前に再取得 | 上記「座標とドリフト補正」 |
+| pose は撮影時に確定させず、フレームごとの Anchor から終了直前に回収 | 上記「座標とドリフト補正」 |
+| VIO 収束前はシャッターを無効にする（`tracking_state` では判定できない） | `MainActivity.updateWarmup()` |
 | `TRACKING` 以外のフレームも捨てずに記録 | `captureFrame()` は trackingState で弾かない |
 | ファイル名は `timestamp_ns` の 18 桁ゼロ埋め | `CaptureSessionWriter.writeFrame()` |
 | EXIF は書かない — `transforms.json` が single source of truth | `YuvJpeg` |
@@ -193,6 +247,13 @@ app/src/main/java/com/example/arcorefetcher/
 - **実機で 1 セッション撮影・書き出しまで確認済み**（Pixel 8 / ARCore 1.56）。
   出力した `transforms.json` は形式の検査を通り、`w` / `h` が保存した JPEG の
   実寸と一致することも確認した
+- **フレームごと Anchor 化とウォームアップゲートは実機未検証。**
+  実装の検証は形式面（生成される JSON の妥当性）までしかできていない。
+  次の撮影で確認すること:
+  - 先頭フレームの視線が被写体を向いているか（`docs/` の検証手順、
+    または視線の最小二乗交点への再投影で確認する）
+  - `origin_refreshed_at_end` が `true` のままか
+  - 撮影ボタンが 3 秒 + 15 cm の条件で有効になるか
 - Gradle Wrapper の JAR (`gradle/wrapper/gradle-wrapper.jar`) を含めていない。
   Android Studio が自動生成するが、失敗したら `gradle wrapper --gradle-version 8.9` で用意する
 
@@ -205,6 +266,9 @@ app/src/main/java/com/example/arcorefetcher/
   値の検査では気づけないので、**新しい端末で撮ったら `w` / `h` が
   保存された JPEG の実寸と一致するか目視確認すること**
 - `tracking=PAUSED` から復帰しない（明るさ・特徴点不足）
+- **トラッキングが途中で切れると、撮影ボタンが再び 3 秒 + 15 cm の間無効になる。**
+  意図した挙動（再ローカライズ直後も座標系が動くため）だが、
+  暗い場所では待たされる時間が増える
 
 ### 保存される画像は横倒しに見える
 

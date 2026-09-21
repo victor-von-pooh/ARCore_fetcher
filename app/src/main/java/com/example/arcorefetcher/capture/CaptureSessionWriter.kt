@@ -62,14 +62,14 @@ class CaptureSessionWriter(
     /**
      * 書き出しを締める。
      *
-     * @param rootAnchorPose セッション終了直前に読み直した root Anchor の pose。
-     *   anchor を張れないまま終わった場合は null。
+     * @param refreshedPoses セッション終了直前に各フレームの Anchor から読み直した pose。
+     *   添字は [PendingFrame.anchorIndex]。読み直せなかった要素は null。
      * @param onDone ワーカースレッドから呼ばれる。成功なら ZIP、失敗なら例外。
      */
-    fun finish(rootAnchorPose: Pose?, onDone: (Result<File>) -> Unit) {
+    fun finish(refreshedPoses: List<Pose?>, onDone: (Result<File>) -> Unit) {
         if (closed) return
         closed = true
-        queue.put(Task.Finish(rootAnchorPose, onDone))
+        queue.put(Task.Finish(refreshedPoses, onDone))
     }
 
     private fun runLoop() {
@@ -78,7 +78,7 @@ class CaptureSessionWriter(
                 is Task.Write -> runCatching { writeFrame(task.frame) }
                     .onFailure { Log.e(TAG, "フレームの書き出しに失敗", it) }
                 is Task.Finish -> {
-                    task.onDone(runCatching { finalizeSession(task.rootAnchorPose) })
+                    task.onDone(runCatching { finalizeSession(task.refreshedPoses) })
                     return
                 }
             }
@@ -102,16 +102,19 @@ class CaptureSessionWriter(
         written += WrittenFrame(
             filePath = "$IMAGES_DIR/$name",
             timestampNs = frame.timestampNs,
-            poseRelativeToAnchor = frame.poseRelativeToAnchor,
+            anchorIndex = frame.anchorIndex,
+            poseAtCapture = frame.poseAtCapture,
             trackingState = frame.trackingState,
             trackingFailureReason = frame.trackingFailureReason,
             intrinsicsOverride = override,
+            trackingElapsedNs = frame.trackingElapsedNs,
+            pointCount = frame.pointCount,
             exposureNs = frame.exposureNs,
             iso = frame.iso,
         )
     }
 
-    private fun finalizeSession(rootAnchorPose: Pose?): File {
+    private fun finalizeSession(refreshedPoses: List<Pose?>): File {
         if (written.isEmpty()) throw IllegalStateException("フレームが 1 枚もありません")
 
         // frames は timestamp_ns 昇順で並べる。
@@ -120,14 +123,14 @@ class CaptureSessionWriter(
         val intrinsics = baseIntrinsics
             ?: throw IllegalStateException("intrinsics が確定していません")
 
-        // anchor を張れなかったセッションではドリフト補正をしていないので正直に false。
-        val effectiveMeta = if (rootAnchorPose == null) {
-            meta.copy(originRefreshedAtEnd = false)
-        } else {
-            meta
+        // 1 枚でも撮影時点の姿勢のまま残ったなら、補正済みと言い切れないので false。
+        val allRefreshed = written.all { refreshedPoses.getOrNull(it.anchorIndex) != null }
+        if (!allRefreshed) {
+            Log.w(TAG, "Anchor から読み直せなかったフレームがあります")
         }
+        val effectiveMeta = meta.copy(originRefreshedAtEnd = allRefreshed)
 
-        val json = TransformsJson.build(effectiveMeta, intrinsics, written, rootAnchorPose)
+        val json = TransformsJson.build(effectiveMeta, intrinsics, written, refreshedPoses)
         File(sessionDir, "transforms.json").writeText(json, Charsets.UTF_8)
 
         return Zip.zipDirectory(sessionDir, File(sessionDir.parentFile, "${sessionDir.name}.zip"))
@@ -135,7 +138,7 @@ class CaptureSessionWriter(
 
     private sealed class Task {
         class Write(val frame: PendingFrame) : Task()
-        class Finish(val rootAnchorPose: Pose?, val onDone: (Result<File>) -> Unit) : Task()
+        class Finish(val refreshedPoses: List<Pose?>, val onDone: (Result<File>) -> Unit) : Task()
     }
 
     companion object {

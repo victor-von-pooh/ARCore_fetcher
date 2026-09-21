@@ -548,14 +548,17 @@ val t = FloatArray(3)</code></pre>
 
 <h3>3.3 単一式関数 — <code>{ }</code> を <code>=</code> にする</h3>
 
-<pre><code>fun withIdentityRotation(pose: Pose): Pose =
-    Pose(translation(pose), floatArrayOf(0f, 0f, 0f, 1f))</code></pre>
+<pre><code>fun trackingStateOf(name: String): String =
+    if (name in TRACKING_STATES) name else "STOPPED"</code></pre>
+
+<p>（これは次章の <code>CaptureModel.kt</code> からの先取りです。
+<code>PoseMath.kt</code> の関数はどれも本体が数行あるので、この形になりません。）</p>
 
 <p>本体が式ひとつだけの関数は、<code>{ return ... }</code> ではなく <code>= ...</code> と書けます。
 上は次と同じ意味です。</p>
 
-<pre><code>fun withIdentityRotation(pose: Pose): Pose {
-    return Pose(translation(pose), floatArrayOf(0f, 0f, 0f, 1f))
+<pre><code>fun trackingStateOf(name: String): String {
+    return if (name in TRACKING_STATES) name else "STOPPED"
 }</code></pre>
 
 <p>短い関数はこの形のほうが読みやすいので、Kotlin ではよく使われます。</p>
@@ -936,7 +939,7 @@ sb.append("  ").append(str("spec_version")).append(": ")</code></pre>
 <h3>6.2 <code>forEachIndexed</code> — 添字も一緒に回す</h3>
 
 <pre><code>frames.forEachIndexed { i, frame -&gt;
-    appendFrame(sb, frame, rootAnchorPose)
+    appendFrame(sb, frame, refreshedPoses)
     sb.append(if (i == frames.lastIndex) "\n" else ",\n")
 }</code></pre>
 
@@ -1212,7 +1215,7 @@ init {
 
 <pre><code>private sealed class Task {
     class Write(val frame: PendingFrame) : Task()
-    class Finish(val rootAnchorPose: Pose?, val onDone: (Result&lt;File&gt;) -&gt; Unit) : Task()
+    class Finish(val refreshedPoses: List&lt;Pose?&gt;, val onDone: (Result&lt;File&gt;) -&gt; Unit) : Task()
 }</code></pre>
 
 <p>ワーカースレッドに投げる「仕事」には 2 種類あります。
@@ -1313,7 +1316,7 @@ submittedCount.incrementAndGet()</code></pre>
 
 <h3>7.8 高階関数 — 関数を引数にする</h3>
 
-<pre><code>fun finish(rootAnchorPose: Pose?, onDone: (Result&lt;File&gt;) -&gt; Unit) {</code></pre>
+<pre><code>fun finish(refreshedPoses: List&lt;Pose?&gt;, onDone: (Result&lt;File&gt;) -&gt; Unit) {</code></pre>
 
 <p><code>(Result&lt;File&gt;) -&gt; Unit</code> が<strong>関数の型</strong>です。読み方はこうです。</p>
 
@@ -1478,7 +1481,7 @@ fun main() {
 <table>
   <tr><th></th><th>使う場面</th></tr>
   <tr><td><code>lateinit var</code></td><td>初期化のタイミングが後だが、<strong>必ず入る</strong>もの</td></tr>
-  <tr><td><code>var x: T? = null</code></td><td><strong>本当に無いことがある</strong>もの（<code>session</code>, <code>writer</code>, <code>rootAnchor</code>）</td></tr>
+  <tr><td><code>var x: T? = null</code></td><td><strong>本当に無いことがある</strong>もの（<code>session</code>, <code>writer</code>, <code>warmupOrigin</code>）</td></tr>
 </table>
 
 <p>このファイルで <code>session</code> や <code>writer</code> が
