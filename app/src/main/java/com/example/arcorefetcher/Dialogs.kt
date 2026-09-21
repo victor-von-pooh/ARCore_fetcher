@@ -3,6 +3,7 @@ package com.example.arcorefetcher
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.view.View
 import android.widget.Toast
 import com.example.arcorefetcher.capture.CaptureStore
 import com.example.arcorefetcher.databinding.DialogExportDoneBinding
@@ -34,15 +35,20 @@ object Dialogs {
      *
      * @param frameCount 表示用の枚数。過去データを開き直したときのように分からなければ null。
      * @param onSaveToDevice 「端末に保存」。保存先を選ぶ画面の起動は Activity 側が持つ。
+     * @param onDelete 「このデータを削除」。null なら削除ボタンを出さない。
+     *   撮った直後の完了ダイアログでは出さず、保存済みデータの管理画面からだけ出す。
      */
     fun showExportDone(
         activity: Activity,
         zip: File,
         frameCount: Int?,
         onSaveToDevice: (File) -> Unit,
+        onDelete: ((File) -> Unit)? = null,
     ) {
         val binding = DialogExportDoneBinding.inflate(activity.layoutInflater)
         binding.zipName.text = zip.name
+        // ここは「取り出したら何 MB になるか」なので ZIP のサイズ。
+        // 端末上の占有量（ZIP + 展開済みディレクトリ）は保存済みデータの管理画面に出す。
         val size = CaptureStore.formatSize(zip.length())
         binding.zipDetail.text = if (frameCount == null) {
             activity.getString(R.string.export_detail_no_count, size)
@@ -61,30 +67,17 @@ object Dialogs {
         binding.saveButton.setOnClickListener { onSaveToDevice(zip) }
         binding.shareButton.setOnClickListener { share(activity, zip) }
         binding.closeButton.setOnClickListener { dialog.dismiss() }
-        dialog.show()
-    }
 
-    /** 書き出し済みデータの一覧。選ぶと [showExportDone] が開く。 */
-    fun showSavedCaptures(activity: Activity, onSaveToDevice: (File) -> Unit) {
-        val zips = CaptureStore.savedZips(activity)
-        if (zips.isEmpty()) {
-            MaterialAlertDialogBuilder(activity)
-                .setTitle(R.string.saved_list_title)
-                .setMessage(R.string.saved_list_empty)
-                .setPositiveButton(R.string.action_close, null)
-                .show()
-            return
-        }
-        val labels = zips
-            .map { "${it.name}\n${CaptureStore.formatSize(it.length())}" }
-            .toTypedArray()
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.saved_list_title)
-            .setItems(labels) { _, which ->
-                showExportDone(activity, zips[which], frameCount = null, onSaveToDevice = onSaveToDevice)
+        if (onDelete == null) {
+            binding.deleteButton.visibility = View.GONE
+        } else {
+            // 削除の確認は呼び出し側が出す。消えたデータをここで開いたままにはしない。
+            binding.deleteButton.setOnClickListener {
+                dialog.dismiss()
+                onDelete(zip)
             }
-            .setNegativeButton(R.string.action_close, null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun share(activity: Activity, zip: File) {

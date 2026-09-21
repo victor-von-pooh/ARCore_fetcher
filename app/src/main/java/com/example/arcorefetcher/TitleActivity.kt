@@ -22,9 +22,6 @@ class TitleActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityTitleBinding
 
-    /** Activity が STARTED になる前に登録する必要があるのでフィールドで持つ。 */
-    private val saveToDevice = SaveToDeviceLauncher(this)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityTitleBinding.inflate(layoutInflater)
@@ -36,7 +33,7 @@ class TitleActivity : AppCompatActivity() {
         }
         binding.manualButton.setOnClickListener { Dialogs.showManual(this) }
         binding.savedButton.setOnClickListener {
-            Dialogs.showSavedCaptures(this) { zip -> saveToDevice.save(zip) }
+            startActivity(Intent(this, SavedCapturesActivity::class.java))
         }
     }
 
@@ -46,6 +43,7 @@ class TitleActivity : AppCompatActivity() {
         refreshSavedCount()
     }
 
+    /** 0 件でもボタンは押せるままにする（空であることを管理画面で示すほうが親切）。 */
     private fun refreshSavedCount() {
         val count = CaptureStore.savedZips(this).size
         binding.savedButton.text = if (count == 0) {
@@ -53,7 +51,6 @@ class TitleActivity : AppCompatActivity() {
         } else {
             getString(R.string.action_saved_data, count)
         }
-        binding.savedButton.isEnabled = count > 0
     }
 
     /** システムバーの裏まで描くテーマなので、中身に余白を入れる。 */

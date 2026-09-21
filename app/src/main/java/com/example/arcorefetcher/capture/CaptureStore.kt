@@ -50,6 +50,34 @@ object CaptureStore {
         } ?: throw IllegalStateException("保存先を開けません: $target")
     }
 
+    /**
+     * ZIP のもとになった展開済みディレクトリ。`capture_xxx.zip` → `capture_xxx`。
+     *
+     * ZIP を作ったあともこのディレクトリは残るので、1 回の撮影で容量を約 2 倍使う。
+     * 削除するときは両方消さないと、見かけ上より容量が減らない。
+     */
+    fun sourceDirOf(zip: File): File = File(zip.parentFile, zip.name.removeSuffix(".zip"))
+
+    /** ZIP と展開済みディレクトリを合わせた、その撮影が実際に占めている容量。 */
+    fun totalSizeOf(zip: File): Long = zip.length() + sizeOf(sourceDirOf(zip))
+
+    /**
+     * 1 回分の撮影を消す。ZIP と展開済みディレクトリの両方。
+     *
+     * @return 消せたら true。一部でも残ったら false。
+     */
+    fun delete(zip: File): Boolean {
+        val dirOk = sourceDirOf(zip).deleteRecursively()
+        val zipOk = !zip.exists() || zip.delete()
+        return dirOk && zipOk
+    }
+
+    private fun sizeOf(file: File): Long = when {
+        !file.exists() -> 0L
+        file.isFile -> file.length()
+        else -> file.listFiles()?.sumOf { sizeOf(it) } ?: 0L
+    }
+
     /** `12.3 MB` のような表示用の文字列。 */
     fun formatSize(bytes: Long): String {
         val mb = bytes / 1024.0 / 1024.0

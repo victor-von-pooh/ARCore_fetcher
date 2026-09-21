@@ -131,6 +131,7 @@ intrinsics はセッション中不変なのでトップレベルに置き、
 |---|---|
 | `TitleActivity` | 起動直後。撮影の開始・使い方・保存済みデータの 3 択。ARCore セッションは作らない |
 | `MainActivity` | 撮影。カメラ権限と ARCore のインストール要求はここで初めて出す |
+| `SavedCapturesActivity` | 書き出し済みデータの取り出しと削除 |
 
 起動していきなりカメラを開かないのは、権限とインストールの要求を
 「撮ると決めた人」にだけ出すため。
@@ -155,6 +156,33 @@ intrinsics はセッション中不変なのでトップレベルに置き、
 
 撮影中に戻るキーを押した場合も、未書き出しのフレームがあれば確認ダイアログを挟む。
 書き出し中（ZIP 生成中）は離脱させない。
+
+### 容量の管理
+
+**1 回の撮影は ZIP と展開済みディレクトリの両方を残すので、容量を約 2 倍使う。**
+
+```
+captures/
+├── capture_20260922T103104/        ← 展開済み（ZIP を作る元）
+│   ├── transforms.json
+│   └── images/
+└── capture_20260922T103104.zip     ← 取り出し用
+```
+
+ZIP を作ったあとも元のディレクトリは消していない。`CaptureStore.delete()` は
+この 2 つを必ずセットで消すので、削除した分だけ実際に空く。
+
+`SavedCapturesActivity` で表示する容量（一覧・合計・削除の確認）は
+**両方を合わせた端末上の占有量**。一方、書き出し完了ダイアログに出る容量は
+「取り出したら何 MB になるか」なので ZIP 単体のサイズで、値が違う。
+
+削除は 3 通り。
+
+- **個別** — 一覧で行をタップして開いたダイアログの「このデータを削除」
+- **複数選択** — チェックを付けて「選択した n 件を削除」
+- **全選択** — 「すべて選択」でまとめて選び、そのまま削除
+
+いずれも件数と空く容量を出したうえで確認を挟む。既定のボタンはキャンセル側。
 
 ## 設計
 
@@ -242,14 +270,15 @@ JPEG エンコードとディスク書き込みは専用ワーカースレッド
 app/src/main/java/com/example/arcorefetcher/
 ├── TitleActivity.kt             # タイトル画面
 ├── MainActivity.kt              # ARCore セッション管理・シャッター処理
-├── Dialogs.kt                   # 使い方・書き出し完了・保存済みデータ
+├── SavedCapturesActivity.kt     # 保存済みデータの取り出し・削除
+├── Dialogs.kt                   # 使い方・書き出し完了
 ├── SaveToDeviceLauncher.kt      # ACTION_CREATE_DOCUMENT の配線
 ├── capture/
 │   ├── CaptureModel.kt          # CaptureSpec / Intrinsics / CaptureMeta / PendingFrame
 │   ├── PoseMath.kt              # 転置・quaternion・translation の変換
 │   ├── TransformsJson.kt        # transforms.json シリアライザ
 │   ├── CaptureSessionWriter.kt  # ディレクトリ書き出し・ZIP 化
-│   ├── CaptureStore.kt          # 書き出し済み ZIP の列挙・共有・端末保存
+│   ├── CaptureStore.kt          # 書き出し済みデータの列挙・共有・端末保存・削除
 │   ├── YuvJpeg.kt               # YUV_420_888 → NV21 → JPEG
 │   └── Zip.kt
 └── render/BackgroundRenderer.kt # カメラ映像を描く最小 GL レンダラ
@@ -284,7 +313,7 @@ app/src/main/java/com/example/arcorefetcher/
 - **実機で 1 セッション撮影・書き出しまで確認済み**（Pixel 8 / ARCore 1.56）。
   出力した `transforms.json` は形式の検査を通り、`w` / `h` が保存した JPEG の
   実寸と一致することも確認した
-- **タイトル画面・使い方・書き出し完了ダイアログは実機未検証。**
+- **タイトル画面・使い方・書き出し完了ダイアログ・保存済みデータの管理は実機未検証。**
 - **フレームごと Anchor 化とウォームアップゲートは実機未検証。**
   実装の検証は形式面（生成される JSON の妥当性）までしかできていない。
   次の撮影で確認すること:
@@ -321,6 +350,7 @@ app/src/main/java/com/example/arcorefetcher/
 
 | 項目 | 内容 |
 |---|---|
+| 展開済みディレクトリの自動削除 | ZIP を作ったあとも元のディレクトリを残しているので容量を約 2 倍使う。自動で消すかは未決（ZIP 化が失敗したときの退避先でもある） |
 | depth | `Config.DepthMode` を有効化し `Frame.acquireDepthImage16Bits()` を 16bit grayscale PNG（mm）で保存。オプショナル項目なので後方互換に追加できる |
 | `shared_camera` | 高解像度静止画。静止画とプレビューで解像度が変わるため、フレーム単位の intrinsics 上書きが必要。`PendingFrame.intrinsicsOverride` として配線済み |
 | `exposure_ns` / `iso` | `acquireCameraImage()` の `Image` には撮影メタデータが付かない。取るなら Shared Camera 経由で `CaptureResult` を読む必要がある。オプショナル |

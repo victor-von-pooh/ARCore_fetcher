@@ -31,8 +31,8 @@
 
     <!-- 書き出しの取り出し -->
     <string name="export_done_title">書き出しました</string>
-    <string name="export_detail">%1$d 枚 ／ %2$s</string>
-    <string name="export_detail_no_count">%1$s</string>
+    <string name="export_detail">%1$d 枚 ／ ZIP %2$s</string>
+    <string name="export_detail_no_count">ZIP %1$s</string>
     <string name="export_keep_note">このデータはアプリ内に残ります。ここを閉じても、タイトル画面の「保存済みデータ」からいつでも取り出せます。</string>
     <string name="action_save_to_device">端末に保存</string>
     <string name="action_share">共有して送る</string>
@@ -41,8 +41,24 @@
     <string name="msg_save_failed">保存できませんでした: %1$s</string>
     <string name="msg_share_failed">共有できるアプリが見つかりません。「端末に保存」を使ってください。</string>
 
+    <!-- 保存済みデータの管理 -->
     <string name="saved_list_title">保存済みデータ</string>
     <string name="saved_list_empty">書き出したデータはまだありません。</string>
+    <string name="saved_summary">%1$d 件 ・ 端末で合計 %2$s</string>
+    <string name="saved_item_detail">端末で %1$s ・ %2$s</string>
+    <string name="saved_select_item">選択</string>
+    <string name="action_select_all">すべて選択</string>
+    <string name="action_select_none">選択をすべて解除</string>
+    <string name="action_delete_selected">選択した %1$d 件を削除</string>
+    <string name="action_delete_none">削除するデータを選んでください</string>
+    <string name="action_delete_this">このデータを削除</string>
+    <string name="action_delete">削除する</string>
+    <string name="action_cancel">キャンセル</string>
+    <string name="delete_confirm_title">削除しますか</string>
+    <string name="delete_confirm_one">%1$s を削除します（%2$s の空き）。\n\n端末に保存していない場合、このデータは元に戻せません。</string>
+    <string name="delete_confirm_many">%1$d 件を削除します（%2$s の空き）。\n\n端末に保存していない場合、これらのデータは元に戻せません。</string>
+    <string name="msg_deleted">%1$d 件を削除しました。</string>
+    <string name="msg_delete_failed">%1$d 件を削除できませんでした。</string>
 
     <!-- 撮影中の離脱確認 -->
     <string name="discard_title">撮影を中断しますか</string>
@@ -65,7 +81,7 @@
     <string name="manual_tips">・明るい場所で撮る。暗いとトラッキングが外れます。\n・速く振らない。ブレるとトラッキングが外れます。\n・隣り合う写真が 7 割くらい重なるように、少しずつ動かします。\n・同じ場所から連写しても情報は増えません。必ず視点を変えてください。\n・対象を画面の中央に入れ続けてください。</string>
 
     <string name="manual_h_notes">知っておくこと</string>
-    <string name="manual_notes">・保存される写真は横倒しに見えますが、正常です。カメラの内部パラメータと食い違わせないため、回転させずに保存しています。\n\n・書き出したデータはアプリ内に残ります。共有をキャンセルしても、タイトル画面の「保存済みデータ」から取り出し直せます。\n\n・アプリをアンインストールすると、アプリ内のデータは消えます。残したいものは「端末に保存」で外に出してください。</string>
+    <string name="manual_notes">・保存される写真は横倒しに見えますが、正常です。カメラの内部パラメータと食い違わせないため、回転させずに保存しています。\n\n・書き出したデータはアプリ内に残ります。共有をキャンセルしても、タイトル画面の「保存済みデータ」から取り出し直せます。\n\n・アプリをアンインストールすると、アプリ内のデータは消えます。残したいものは「端末に保存」で外に出してください。\n\n・1 回の撮影で、ZIP と展開済みフォルダの両方が端末に残ります（容量は約 2 倍）。いらなくなったら「保存済みデータ」から削除してください。1 件ずつ、チェックで複数選択、すべて選択のいずれでも消せます。削除は取り消せません。</string>
 
     <string name="share_title">撮影データを共有</string>
 </resources>

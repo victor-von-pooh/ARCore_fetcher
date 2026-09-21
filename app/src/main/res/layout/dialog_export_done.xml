@@ -52,6 +52,15 @@
         android:text="@string/action_share" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/deleteButton"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/action_delete_this"
+        android:textColor="?attr/colorError" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/closeButton"
         style="@style/Widget.Material3.Button.TextButton"
         android:layout_width="match_parent"
