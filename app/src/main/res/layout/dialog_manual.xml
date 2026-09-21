@@ -51,6 +51,14 @@
 
         <TextView
             style="@style/ManualHeading"
+            android:text="@string/manual_h_howmany" />
+
+        <TextView
+            style="@style/ManualBody"
+            android:text="@string/manual_shoot" />
+
+        <TextView
+            style="@style/ManualHeading"
             android:text="@string/manual_h_notes" />
 
         <TextView
