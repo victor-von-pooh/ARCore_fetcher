@@ -25,6 +25,8 @@ object Dialogs {
      * 誤タップでこのダイアログを飛ばしてしまい、撮り直しになる事故を防ぐのが目的。
      *
      * @param frameCount 表示用の枚数。過去データを開き直したときのように分からなければ null。
+     * @param unrefreshedCount 終了時に姿勢を確定できなかったフレーム数。
+     *   0 でなければ座標系が混ざっているので、その場で知らせる。
      * @param onSaveToDevice 「端末に保存」。保存先を選ぶ画面の起動は Activity 側が持つ。
      * @param onDelete 「このデータを削除」。null なら削除ボタンを出さない。
      *   撮った直後の完了ダイアログでは出さず、保存済みデータの管理画面からだけ出す。
@@ -37,6 +39,7 @@ object Dialogs {
         activity: Activity,
         zip: File,
         frameCount: Int?,
+        unrefreshedCount: Int = 0,
         onSaveToDevice: (File) -> Unit,
         onDelete: ((File) -> Unit)? = null,
     ) {
@@ -49,6 +52,12 @@ object Dialogs {
             activity.getString(R.string.export_detail_no_count, size)
         } else {
             activity.getString(R.string.export_detail, frameCount, size)
+        }
+
+        if (unrefreshedCount > 0) {
+            binding.unrefreshedWarning.visibility = View.VISIBLE
+            binding.unrefreshedWarning.text =
+                activity.getString(R.string.export_unrefreshed, unrefreshedCount)
         }
 
         val dialog = MaterialAlertDialogBuilder(activity)

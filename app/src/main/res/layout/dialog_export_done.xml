@@ -29,6 +29,18 @@
         android:textAppearance="?attr/textAppearanceBodyMedium"
         tools:text="27 枚 / 12.3 MB" />
 
+    <!-- 姿勢を確定できなかったフレームがある場合だけ出す。 -->
+    <TextView
+        android:id="@+id/unrefreshedWarning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorError"
+        android:visibility="gone"
+        tools:text="3 枚の姿勢を確定できませんでした。"
+        tools:visibility="visible" />
+
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

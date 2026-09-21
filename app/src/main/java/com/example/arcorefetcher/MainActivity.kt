@@ -24,6 +24,7 @@ import com.example.arcorefetcher.capture.Intrinsics
 import com.example.arcorefetcher.capture.NO_ANCHOR
 import com.example.arcorefetcher.capture.PendingFrame
 import com.example.arcorefetcher.capture.PoseMath
+import com.example.arcorefetcher.capture.WriteResult
 import com.example.arcorefetcher.capture.YuvJpeg
 import com.example.arcorefetcher.databinding.ActivityMainBinding
 import com.example.arcorefetcher.render.BackgroundRenderer
@@ -112,6 +113,16 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
     @Volatile
     private var warmedUp = false
 
+    /**
+     * 書き出し待ちに入ったフレームの timestamp。0 なら待っていない。
+     *
+     * 全 Anchor の姿勢を**同じ 1 フレームで**読めるまで待つ。戻るボタンの判定で
+     * UI スレッドからも読むので volatile。
+     */
+    @Volatile
+    private var finalizeWaitSinceNs = 0L
+    private var finalizeWaitElapsedNs = 0L
+
     @Volatile
     private var finishing = false
 
@@ -151,7 +162,7 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
      */
     private val backGuard = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
-            if (finishing) {
+            if (finishing || finalizeWaitSinceNs != 0L) {
                 toast(getString(R.string.msg_writing))
                 return
             }
@@ -369,8 +380,12 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                 .onFailure { Log.e(TAG, "撮影に失敗", it) }
         }
         if (finishRequested.getAndSet(false)) {
-            runCatching { finishSession() }
+            runCatching { beginFinalize(frame) }
                 .onFailure { Log.e(TAG, "書き出しの開始に失敗", it) }
+        }
+        if (finalizeWaitSinceNs != 0L) {
+            runCatching { tryFinalize(frame, camera) }
+                .onFailure { Log.e(TAG, "書き出しに失敗", it) }
         }
         updateStatus(camera)
     }
@@ -551,31 +566,63 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
     // 書き出し
     // ------------------------------------------------------------------
 
-    private fun finishSession() {
+    /**
+     * 「書き出し」が押された。すぐには書き出さず、姿勢を確定できる状態になるのを待つ。
+     */
+    private fun beginFinalize(frame: Frame) {
         val writer = this.writer ?: return
         if (writer.submittedCount.get() == 0) {
             toast(getString(R.string.msg_no_frames))
             return
         }
+        if (finalizeWaitSinceNs != 0L) return
+        finalizeWaitSinceNs = frame.timestamp
+        finalizeWaitElapsedNs = 0L
+        runOnUiThread {
+            binding.shutterButton.isEnabled = false
+            binding.finishButton.isEnabled = false
+        }
+    }
+
+    /**
+     * 全 Anchor の姿勢を**同じ 1 フレームで**読めたら書き出す。読めなければ待つ。
+     *
+     * ここが本質的に重要な箇所。ARCore はループクローズや再ローカライズで
+     * world 座標を後から測り直す。Anchor はその補正を受けるが、
+     * **別々のフレームで読むと、読んだ時点ごとに違う座標系の姿勢が混ざる**。
+     * だから「1 フレームで全部」でなければならない。
+     *
+     * トラッキングが外れている間は Anchor の姿勢が未定義で読めない。ここで待たずに
+     * 書き出すと、全フレームが撮影時点の姿勢のまま出て、測り直しが一切反映されない。
+     * 実機データでは、それが 1 セッション内で 48.8 cm の座標ジャンプとして出た。
+     *
+     * 待っても戻らないことはあるので上限を切る。その場合は読めたぶんだけ補正し、
+     * 読めなかったフレームには `pose_refreshed: false` を立てて下流に知らせる。
+     */
+    private fun tryFinalize(frame: Frame, camera: Camera) {
+        val writer = this.writer ?: run { finalizeWaitSinceNs = 0L; return }
+
+        finalizeWaitElapsedNs = frame.timestamp - finalizeWaitSinceNs
+        val ready = camera.trackingState == TrackingState.TRACKING &&
+            frameAnchors.all { it.trackingState == TrackingState.TRACKING }
+        if (!ready && finalizeWaitElapsedNs < FINALIZE_TIMEOUT_NS) return
+
+        // ここから下は同じフレームの中で完結させる。
+        val refreshed: List<Pose?> = frameAnchors.map { anchor ->
+            if (anchor.trackingState == TrackingState.TRACKING) anchor.pose else null
+        }
+        if (!ready) {
+            Log.w(TAG, "姿勢を確定できないまま書き出します: " +
+                "${refreshed.count { it == null }} / ${refreshed.size} 個の Anchor が読めません")
+        }
+
+        finalizeWaitSinceNs = 0L
         finishing = true
-        // 完了ダイアログの表示に使う。writer を手放す前に控えておく。
-        lastFrameCount = writer.submittedCount.get()
         this.writer = null
         runOnUiThread {
             binding.shutterButton.isEnabled = false
             binding.finishButton.isEnabled = false
             binding.statusText.text = getString(R.string.msg_writing)
-        }
-
-        // 終了直前に各フレームの Anchor の pose を読み直す。
-        // ここで読んだ pose には、それまでのループクローズ・再ローカライズによる
-        // 遡及補正が反映されている。
-        //
-        // TRACKING でない Anchor の pose は ARCore の規約上未定義なので回収しない。
-        // その場合は撮影時点の姿勢がそのまま出力され、
-        // origin_refreshed_at_end に false が立つ。
-        val refreshed: List<Pose?> = frameAnchors.map { anchor ->
-            if (anchor.trackingState == TrackingState.TRACKING) anchor.pose else null
         }
 
         writer.finish(refreshed) { result ->
@@ -592,7 +639,7 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         frameAnchors.clear()
     }
 
-    private fun onWriteComplete(result: Result<File>) {
+    private fun onWriteComplete(result: Result<WriteResult>) {
         finishing = false
         // シャッターはウォームアップ状態に従う。無条件に戻すと、
         // 収束していないのに撮れてしまう。
@@ -601,21 +648,21 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         lastStatus = null
         binding.statusText.text = getString(R.string.status_idle)
 
-        result.onSuccess { zip ->
+        result.onSuccess { written ->
             // 共有シートを直接開かない。誤タップで閉じると取り出す手段を見失うため、
             // 閉じない完了ダイアログを挟んで、保存・共有を何度でもやり直せるようにする。
             // trailing lambda は最後の引数（onDelete）に付くので、名前付きで渡す。
             Dialogs.showExportDone(
                 activity = this,
-                zip = zip,
-                frameCount = lastFrameCount,
+                zip = written.zip,
+                frameCount = written.frameCount,
+                unrefreshedCount = written.unrefreshedCount,
                 onSaveToDevice = { saveToDevice.save(it) },
             )
         }.onFailure { e ->
             Log.e(TAG, "書き出しに失敗", e)
             toast(getString(R.string.msg_write_failed, e.message ?: e.javaClass.simpleName))
         }
-        lastFrameCount = null
     }
 
     // ------------------------------------------------------------------
@@ -643,7 +690,11 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     private fun updateStatus(camera: Camera) {
         if (finishing) return
-        val text = if (warmedUp) capturingStatusText(camera) else warmupStatusText(camera)
+        val text = when {
+            finalizeWaitSinceNs != 0L -> finalizeStatusText()
+            warmedUp -> capturingStatusText(camera)
+            else -> warmupStatusText(camera)
+        }
         // ウォームアップ中は毎フレーム値が動くので、文字列が変わったときだけ渡す。
         if (text == lastStatus) return
         lastStatus = text
@@ -671,10 +722,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         )
     }
 
-    private var lastStatus: String? = null
+    /** 待っている理由と、あと何秒待つかを出す。黙って止まったように見せない。 */
+    private fun finalizeStatusText(): String {
+        val left = ((FINALIZE_TIMEOUT_NS - finalizeWaitElapsedNs) / 1_000_000_000L + 1)
+            .coerceAtLeast(0)
+        return getString(R.string.status_finalizing, left)
+    }
 
-    /** 書き出し完了ダイアログに出す枚数。writer を手放す前に控える。 */
-    private var lastFrameCount: Int? = null
+    private var lastStatus: String? = null
 
     private fun toast(message: String) {
         runOnUiThread { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
@@ -687,6 +742,13 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
         /** `app/build.gradle.kts` の `com.google.ar:core` と揃えること。 */
         const val AR_CORE_CLIENT_VERSION = "1.47.0"
+
+        /**
+         * 書き出し前に、全 Anchor の姿勢が読めるようになるのを待つ上限。
+         *
+         * 短すぎると補正を取りこぼし、長すぎると戻らない状況で待たせ続ける。
+         */
+        val FINALIZE_TIMEOUT_NS = 15_000_000_000L
 
         /** ウォームアップの条件: TRACKING の連続時間と、その間の最大移動距離。 */
         const val WARMUP_MIN_SEC = 3.0

@@ -64,9 +64,9 @@ class CaptureSessionWriter(
      *
      * @param refreshedPoses セッション終了直前に各フレームの Anchor から読み直した pose。
      *   添字は [PendingFrame.anchorIndex]。読み直せなかった要素は null。
-     * @param onDone ワーカースレッドから呼ばれる。成功なら ZIP、失敗なら例外。
+     * @param onDone ワーカースレッドから呼ばれる。成功なら [WriteResult]、失敗なら例外。
      */
-    fun finish(refreshedPoses: List<Pose?>, onDone: (Result<File>) -> Unit) {
+    fun finish(refreshedPoses: List<Pose?>, onDone: (Result<WriteResult>) -> Unit) {
         if (closed) return
         closed = true
         queue.put(Task.Finish(refreshedPoses, onDone))
@@ -114,7 +114,7 @@ class CaptureSessionWriter(
         )
     }
 
-    private fun finalizeSession(refreshedPoses: List<Pose?>): File {
+    private fun finalizeSession(refreshedPoses: List<Pose?>): WriteResult {
         if (written.isEmpty()) throw IllegalStateException("フレームが 1 枚もありません")
 
         // frames は timestamp_ns 昇順で並べる。
@@ -124,21 +124,22 @@ class CaptureSessionWriter(
             ?: throw IllegalStateException("intrinsics が確定していません")
 
         // 1 枚でも撮影時点の姿勢のまま残ったなら、補正済みと言い切れないので false。
-        val allRefreshed = written.all { refreshedPoses.getOrNull(it.anchorIndex) != null }
-        if (!allRefreshed) {
-            Log.w(TAG, "Anchor から読み直せなかったフレームがあります")
+        val unrefreshed = written.count { refreshedPoses.getOrNull(it.anchorIndex) == null }
+        if (unrefreshed > 0) {
+            Log.w(TAG, "Anchor から姿勢を読み直せなかったフレームが $unrefreshed 枚あります")
         }
-        val effectiveMeta = meta.copy(originRefreshedAtEnd = allRefreshed)
+        val effectiveMeta = meta.copy(originRefreshedAtEnd = unrefreshed == 0)
 
         val json = TransformsJson.build(effectiveMeta, intrinsics, written, refreshedPoses)
         File(sessionDir, "transforms.json").writeText(json, Charsets.UTF_8)
 
-        return Zip.zipDirectory(sessionDir, File(sessionDir.parentFile, "${sessionDir.name}.zip"))
+        val zip = Zip.zipDirectory(sessionDir, File(sessionDir.parentFile, "${sessionDir.name}.zip"))
+        return WriteResult(zip, written.size, unrefreshed)
     }
 
     private sealed class Task {
         class Write(val frame: PendingFrame) : Task()
-        class Finish(val refreshedPoses: List<Pose?>, val onDone: (Result<File>) -> Unit) : Task()
+        class Finish(val refreshedPoses: List<Pose?>, val onDone: (Result<WriteResult>) -> Unit) : Task()
     }
 
     companion object {

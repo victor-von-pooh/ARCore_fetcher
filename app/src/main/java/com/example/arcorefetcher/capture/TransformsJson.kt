@@ -88,7 +88,8 @@ object TransformsJson {
     private fun appendFrame(sb: StringBuilder, frame: WrittenFrame, refreshedPoses: List<Pose?>) {
         // フレーム専用 Anchor から読み直した pose がそのまま world 姿勢。
         // 読み直せなかったフレームだけ撮影時点の姿勢で埋める。
-        val world = refreshedPoses.getOrNull(frame.anchorIndex) ?: frame.poseAtCapture
+        val refreshed = refreshedPoses.getOrNull(frame.anchorIndex)
+        val world = refreshed ?: frame.poseAtCapture
         val m = PoseMath.toRowMajorMatrix(world)
         val t = PoseMath.translation(world)
         val q = PoseMath.quaternionXyzw(world)
@@ -114,7 +115,13 @@ object TransformsJson {
         sb.append("      ").append(str("tracking_state")).append(": ")
             .append(str(frame.trackingState)).append(",\n")
         sb.append("      ").append(str("tracking_failure_reason")).append(": ")
-            .append(str(frame.trackingFailureReason))
+            .append(str(frame.trackingFailureReason)).append(",\n")
+
+        // 終了時に Anchor から姿勢を読み直せたか。
+        // false のフレームは撮影時点の姿勢のままなので、ARCore がその後に行った
+        // 座標の測り直しが反映されていない。true のフレームとは座標系が食い違いうる。
+        // セッション単位の origin_refreshed_at_end だけでは、どれがそれか分からない。
+        sb.append("      ").append(str("pose_refreshed")).append(": ").append(refreshed != null)
 
         // VIO は収束しきる前でも TRACKING を報告する。下流が初期化区間のフレームを
         // 見分けられるように、収束の手がかりを省略可能な項目として残す。

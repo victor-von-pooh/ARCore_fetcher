@@ -1,6 +1,7 @@
 package com.example.arcorefetcher.capture
 
 import com.google.ar.core.Pose
+import java.io.File
 
 /**
  * 書き出す capture format の固定値。
@@ -90,6 +91,19 @@ data class CaptureMeta(
      * false になる。その場合、該当フレームは撮影時点の姿勢のまま出力される。
      */
     val originRefreshedAtEnd: Boolean = true,
+)
+
+/**
+ * 書き出しの結果。
+ *
+ * [unrefreshedCount] が 0 でないセッションは、**補正後の座標系と補正前の座標系が
+ * 1 つのファイルに混ざっている**。どのフレームがどちらかは transforms.json の
+ * `pose_refreshed` で判別する。
+ */
+class WriteResult(
+    val zip: File,
+    val frameCount: Int,
+    val unrefreshedCount: Int,
 )
 
 /** Anchor を張れなかったフレームの [PendingFrame.anchorIndex]。 */

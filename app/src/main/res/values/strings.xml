@@ -19,6 +19,7 @@
     <string name="status_waiting_tracking">端末をゆっくり動かしてトラッキングを開始してください</string>
     <string name="status_warmup">VIO 収束待ち… 継続 %1$.1f/%2$.1f 秒・移動 %3$.2f/%4$.2f m</string>
     <string name="status_frames">%1$d 枚（TRACKING %2$d）</string>
+    <string name="status_finalizing">姿勢を確定しています… 端末をゆっくり動かしてトラッキングを戻してください（残り %1$d 秒）</string>
 
     <string name="msg_camera_permission_required">カメラ権限がないと撮影できません。</string>
     <string name="msg_arcore_unavailable">この端末は ARCore に対応していません。</string>
@@ -33,6 +34,7 @@
     <string name="export_done_title">書き出しました</string>
     <string name="export_detail">%1$d 枚 ／ ZIP %2$s</string>
     <string name="export_detail_no_count">ZIP %1$s</string>
+    <string name="export_unrefreshed">%1$d 枚の姿勢を確定できませんでした。\n\nこれらは撮影時点の姿勢のままで、ARCore がその後に行った座標の測り直しが反映されていません。他のフレームと座標系が食い違っている可能性があります。\n\ntransforms.json の pose_refreshed が false のフレームです。まとめて使う前に確認してください。</string>
     <string name="export_keep_note">このデータはアプリ内に残ります。ここを閉じても、タイトル画面の「保存済みデータ」からいつでも取り出せます。</string>
     <string name="action_save_to_device">端末に保存</string>
     <string name="action_share">共有して送る</string>
@@ -91,7 +93,7 @@
     <string name="manual_p6_body">前のページの 1 つ目、物体を回り込む撮り方を詳しく見ます。\n\n・視点を変えて 30〜100 枚\n・隣り合う写真が 7 割くらい重なるように、少しずつ動かす\n・同じ場所から連写しても情報は増えません\n・対象を画面の中央に入れ続ける\n\nあくまで一例です。回り込めない対象（壁面・部屋の内側・大きな構造物）には当てはまりません。</string>
 
     <string name="manual_p7_title">書き出して取り出す</string>
-    <string name="manual_p7_body">「書き出し」を押すと ZIP ができます。取り出し方は 2 つです。\n\n・端末に保存 … 保存先を選んでコピーします。アプリをアンインストールしても残るのはこちらです\n・共有して送る … メールやドライブなど\n\n完了ダイアログは画面の外をタップしても閉じません。保存先の選択や共有をキャンセルしても、そのまま押し直せます。\n\nなお、保存された写真が横倒しに見えても正常です。カメラの内部パラメータと食い違わせないため、回転させずに保存しています。</string>
+    <string name="manual_p7_body">「書き出し」を押すと、まず「姿勢を確定しています…」と出て数秒待つことがあります。端末をゆっくり動かして、トラッキングを戻してください。\n\nARCore は撮影中に、それまでの座標をさかのぼって測り直すことがあります。その結果を書き出し直前に受け取るための待ち時間です。受け取れないまま書き出すと、1 つのファイルの中で座標系がずれたデータになります。撮り終えても、書き出しを押すまでは対象のほうへ向けたままにしておくと確実です。\n\n確定できると ZIP ができます。取り出し方は 2 つです。\n\n・端末に保存 … 保存先を選んでコピーします。アプリをアンインストールしても残るのはこちらです\n・共有して送る … メールやドライブなど\n\n完了ダイアログは画面の外をタップしても閉じません。保存先の選択や共有をキャンセルしても、そのまま押し直せます。\n\nなお、保存された写真が横倒しに見えても正常です。カメラの内部パラメータと食い違わせないため、回転させずに保存しています。</string>
 
     <string name="manual_p8_title">データは端末に残る</string>
     <string name="manual_p8_body">書き出したデータはアプリ内に残ります。ダイアログを閉じたあとでも、タイトル画面の「保存済みデータ」から取り出し直せます。\n\nただし 1 回の撮影で、ZIP と展開済みフォルダの両方が残ります。容量は約 2 倍です。\n\nいらなくなったら「保存済みデータ」から削除してください。1 件ずつ、チェックで複数選択、すべて選択のいずれでも消せます。削除は取り消せません。</string>
