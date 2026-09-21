@@ -594,7 +594,13 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         result.onSuccess { zip ->
             // 共有シートを直接開かない。誤タップで閉じると取り出す手段を見失うため、
             // 閉じない完了ダイアログを挟んで、保存・共有を何度でもやり直せるようにする。
-            Dialogs.showExportDone(this, zip, lastFrameCount) { saveToDevice.save(it) }
+            // trailing lambda は最後の引数（onDelete）に付くので、名前付きで渡す。
+            Dialogs.showExportDone(
+                activity = this,
+                zip = zip,
+                frameCount = lastFrameCount,
+                onSaveToDevice = { saveToDevice.save(it) },
+            )
         }.onFailure { e ->
             Log.e(TAG, "書き出しに失敗", e)
             toast(getString(R.string.msg_write_failed, e.message ?: e.javaClass.simpleName))

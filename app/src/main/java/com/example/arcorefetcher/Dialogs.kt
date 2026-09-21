@@ -37,6 +37,10 @@ object Dialogs {
      * @param onSaveToDevice 「端末に保存」。保存先を選ぶ画面の起動は Activity 側が持つ。
      * @param onDelete 「このデータを削除」。null なら削除ボタンを出さない。
      *   撮った直後の完了ダイアログでは出さず、保存済みデータの管理画面からだけ出す。
+     *
+     * ラムダが 2 つあるので、**呼び出しは必ず名前付き引数で書くこと**。
+     * trailing lambda は最後の引数（[onDelete]）に付くため、
+     * `showExportDone(a, z, n) { ... }` と書くと onSaveToDevice が埋まらない。
      */
     fun showExportDone(
         activity: Activity,
@@ -87,7 +91,7 @@ object Dialogs {
         )
         try {
             activity.startActivity(chooser)
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
             Toast.makeText(activity, R.string.msg_share_failed, Toast.LENGTH_LONG).show()
         }
     }
