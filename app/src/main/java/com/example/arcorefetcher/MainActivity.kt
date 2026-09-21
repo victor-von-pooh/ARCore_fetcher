@@ -1,7 +1,6 @@
 package com.example.arcorefetcher
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
@@ -9,9 +8,9 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -19,6 +18,7 @@ import androidx.core.view.updatePadding
 import com.example.arcorefetcher.capture.CaptureMeta
 import com.example.arcorefetcher.capture.CaptureSessionWriter
 import com.example.arcorefetcher.capture.CaptureSpec
+import com.example.arcorefetcher.capture.CaptureStore
 import com.example.arcorefetcher.capture.Intrinsics
 import com.example.arcorefetcher.capture.NO_ANCHOR
 import com.example.arcorefetcher.capture.PendingFrame
@@ -26,6 +26,7 @@ import com.example.arcorefetcher.capture.PoseMath
 import com.example.arcorefetcher.capture.YuvJpeg
 import com.example.arcorefetcher.databinding.ActivityMainBinding
 import com.example.arcorefetcher.render.BackgroundRenderer
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.Anchor
 import com.google.ar.core.ArCoreApk
 import com.google.ar.core.Camera
@@ -49,7 +50,10 @@ import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
 /**
- * ARCore セッションの管理とシャッター処理。
+ * 撮影画面。ARCore セッションの管理とシャッター処理。
+ *
+ * [TitleActivity] の「撮影を行う」から入る。カメラ権限の要求と ARCore の
+ * インストール要求はここで行う（撮ると決めた人にだけ尋ねるため）。
  *
  * ## スレッド規約（壊すとクラッシュする）
  *
@@ -73,7 +77,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
     private val captureRequested = AtomicBoolean(false)
     private val finishRequested = AtomicBoolean(false)
 
-    /** GL スレッドからのみ触る。 */
+    /** Activity が STARTED になる前に登録する必要があるのでフィールドで持つ。 */
+    private val saveToDevice = SaveToDeviceLauncher(this)
+
+    /**
+     * 書き込み中のセッション。GL スレッドが読み書きするが、
+     * 戻るボタンの確認のために UI スレッドからも参照するので volatile。
+     */
+    @Volatile
     private var writer: CaptureSessionWriter? = null
 
     /**
@@ -124,6 +135,34 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             if (finishing) return@setOnClickListener
             finishRequested.set(true)
         }
+        binding.helpButton.setOnClickListener { Dialogs.showManual(this) }
+
+        onBackPressedDispatcher.addCallback(this, backGuard)
+    }
+
+    /**
+     * 書き出す前に画面を離れると撮影データが消えるので、いったん止めて確認する。
+     *
+     * 書き出し中（ZIP 生成中）は、そもそも離脱させない。
+     */
+    private val backGuard = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            if (finishing) {
+                toast(getString(R.string.msg_writing))
+                return
+            }
+            val pending = writer?.submittedCount?.get() ?: 0
+            if (pending == 0) {
+                finish()
+                return
+            }
+            MaterialAlertDialogBuilder(this@MainActivity)
+                .setTitle(R.string.discard_title)
+                .setMessage(getString(R.string.discard_message, pending))
+                .setPositiveButton(R.string.action_keep_capturing, null)
+                .setNegativeButton(R.string.action_discard) { _, _ -> finish() }
+                .show()
+        }
     }
 
     /**
@@ -140,14 +179,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
         // XML で指定した余白。インセットを足し込む前に控えておかないと、
         // リスナーが複数回呼ばれるたびに余白が累積する。
-        val statusBasePadding = binding.statusText.paddingTop
+        val statusBasePadding = binding.statusBar.paddingTop
         val controlBasePadding = binding.controlBar.paddingBottom
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            binding.statusText.updatePadding(top = statusBasePadding + bars.top)
+            binding.statusBar.updatePadding(top = statusBasePadding + bars.top)
             binding.controlBar.updatePadding(bottom = controlBasePadding + bars.bottom)
             insets
         }
@@ -334,7 +373,7 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
     private fun ensureWriter(): CaptureSessionWriter? {
         writer?.let { return it }
         if (finishing) return null
-        val outputRoot = File(getExternalFilesDir(null), "captures")
+        val outputRoot = CaptureStore.outputRoot(this)
         writer = runCatching {
             CaptureSessionWriter(outputRoot, buildMeta())
         }.onFailure {
@@ -509,6 +548,8 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             return
         }
         finishing = true
+        // 完了ダイアログの表示に使う。writer を手放す前に控えておく。
+        lastFrameCount = writer.submittedCount.get()
         this.writer = null
         runOnUiThread {
             binding.shutterButton.isEnabled = false
@@ -551,23 +592,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         binding.statusText.text = getString(R.string.status_idle)
 
         result.onSuccess { zip ->
-            toast(getString(R.string.msg_write_done, zip.name))
-            shareZip(zip)
+            // 共有シートを直接開かない。誤タップで閉じると取り出す手段を見失うため、
+            // 閉じない完了ダイアログを挟んで、保存・共有を何度でもやり直せるようにする。
+            Dialogs.showExportDone(this, zip, lastFrameCount) { saveToDevice.save(it) }
         }.onFailure { e ->
             Log.e(TAG, "書き出しに失敗", e)
             toast(getString(R.string.msg_write_failed, e.message ?: e.javaClass.simpleName))
         }
-    }
-
-    private fun shareZip(zip: File) {
-        val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", zip)
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/zip"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, zip.name)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivity(Intent.createChooser(intent, getString(R.string.share_title)))
+        lastFrameCount = null
     }
 
     // ------------------------------------------------------------------
@@ -624,6 +656,9 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
     }
 
     private var lastStatus: String? = null
+
+    /** 書き出し完了ダイアログに出す枚数。writer を手放す前に控える。 */
+    private var lastFrameCount: Int? = null
 
     private fun toast(message: String) {
         runOnUiThread { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }

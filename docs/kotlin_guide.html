@@ -126,7 +126,7 @@
 <p>文法だけを順番に覚えても、実際のコードは読めるようになりません。
 文法書に出てこない「なぜここでこう書くのか」が大半を占めるからです。</p>
 
-<p>このリポジトリのコードは全部で約 1,800 行、8 ファイルしかありません。
+<p>このリポジトリのコードは全部で約 1,800 行、12 ファイルしかありません。
 しかも、ファイルごとに登場する文法がきれいに分かれています。
 <strong>短いファイルから順に読んでいくと、必要な文法が必要な順に出てくる</strong>ように並んでいます。
 この解説書はその順番に沿って進みます。</p>
@@ -136,18 +136,24 @@
 <table>
   <tr><th>章</th><th>ファイル</th><th>行数</th><th>ここで覚えること</th></tr>
   <tr><td>2</td><td><code>capture/Zip.kt</code></td><td>36</td><td><code>object</code>、関数、ラムダ、null 安全、文字列テンプレート</td></tr>
-  <tr><td>3</td><td><code>capture/PoseMath.kt</code></td><td>57</td><td>配列、単一式関数、<code>private</code></td></tr>
-  <tr><td>4</td><td><code>capture/CaptureModel.kt</code></td><td>123</td><td><code>data class</code>、デフォルト引数、null 許容型、定数</td></tr>
+  <tr><td>3</td><td><code>capture/PoseMath.kt</code></td><td>61</td><td>配列、単一式関数、<code>private</code></td></tr>
+  <tr><td>4</td><td><code>capture/CaptureModel.kt</code></td><td>157</td><td><code>data class</code>、デフォルト引数、null 許容型、定数</td></tr>
   <tr><td>5</td><td><code>capture/YuvJpeg.kt</code></td><td>110</td><td>ループ、範囲、<code>require</code>、名前付き引数</td></tr>
-  <tr><td>6</td><td><code>capture/TransformsJson.kt</code></td><td>176</td><td><code>when</code>、<code>?.let</code>、コレクション操作</td></tr>
-  <tr><td>7</td><td><code>capture/CaptureSessionWriter.kt</code></td><td>149</td><td>クラス、<code>sealed class</code>、高階関数、スレッド</td></tr>
-  <tr><td>8</td><td><code>MainActivity.kt</code></td><td>484</td><td>継承、<code>override</code>、<code>lateinit</code>、スコープ関数、ライフサイクル</td></tr>
+  <tr><td>6</td><td><code>capture/TransformsJson.kt</code></td><td>183</td><td><code>when</code>、<code>?.let</code>、コレクション操作</td></tr>
+  <tr><td>7</td><td><code>capture/CaptureSessionWriter.kt</code></td><td>152</td><td>クラス、<code>sealed class</code>、高階関数、スレッド</td></tr>
+  <tr><td>8</td><td><code>MainActivity.kt</code></td><td>681</td><td>継承、<code>override</code>、<code>lateinit</code>、スコープ関数、ライフサイクル</td></tr>
   <tr><td>9</td><td><code>render/BackgroundRenderer.kt</code></td><td>165</td><td>（大半は OpenGL の話。Kotlin としては短く）</td></tr>
 </table>
 
+<p>この表に無い 4 ファイル（<code>TitleActivity.kt</code>、<code>Dialogs.kt</code>、
+<code>SaveToDeviceLauncher.kt</code>、<code>capture/CaptureStore.kt</code>）は画面まわりの配線で、
+合計 300 行ほどです。章は立てていませんが、上の章をひととおり読んだあとなら
+そのまま読めます。Android 固有の話（Activity・ダイアログ・ファイルの受け渡し）が
+中心で、新しい Kotlin の文法は出てきません。</p>
+
 <div class="note">
   <p><strong>いきなり <code>MainActivity.kt</code> を開かないこと。</strong>
-  484 行あって、このアプリで一番難しいファイルです。
+  681 行あって、このアプリで一番難しいファイルです。
   ここから読み始めて挫折するのが、いちばんよくある失敗です。</p>
 </div>
 
@@ -1418,7 +1424,7 @@ fun main() {
 
 <h2 id="c8"><span class="n">8</span> MainActivity.kt を読む</h2>
 
-<p>484 行。ここまでの章の内容が全部出てきます。
+<p>681 行。ここまでの章の内容が全部出てきます。
 新しく覚えるのは <strong>継承</strong>、<strong><code>override</code></strong>、<strong><code>lateinit</code></strong>、
 そして <strong>Android のライフサイクル</strong>です。</p>
 
@@ -1669,7 +1675,7 @@ binding.shutterButton.setOnClickListener { captureRequested.set(true) }</code></
 
 <h3>8.10 このファイルの歩き方</h3>
 
-<p>484 行を頭から読む必要はありません。次の順で追うと構造が見えます。</p>
+<p>681 行を頭から読む必要はありません。次の順で追うと構造が見えます。</p>
 
 <ol>
   <li><strong>プロパティ（57〜75 行あたり）</strong> … このクラスが何を持っているか</li>

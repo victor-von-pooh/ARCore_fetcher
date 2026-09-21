@@ -3,11 +3,28 @@
     <style name="Theme.ARCoreFetcher" parent="Theme.Material3.Dark.NoActionBar">
         <!--
             カメラ映像を画面の端まで描くため、システムバーの裏まで描画する。
-            バーに隠れては困る UI には MainActivity.applyWindowInsets() で
+            バーに隠れては困る UI には各 Activity の applyWindowInsets() で
             余白を入れている。ここで windowFullscreen を使うと端末ごとに
             挙動が割れるので使わない。
         -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- 使い方ダイアログの見出しと本文。 -->
+    <style name="ManualHeading">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">20dp</item>
+        <item name="android:textAppearance">?attr/textAppearanceTitleSmall</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+    </style>
+
+    <style name="ManualBody">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+        <item name="android:textAppearance">?attr/textAppearanceBodyMedium</item>
     </style>
 </resources>

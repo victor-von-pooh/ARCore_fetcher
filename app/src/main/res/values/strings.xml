@@ -2,8 +2,18 @@
 <resources>
     <string name="app_name">ARCore fetcher</string>
 
+    <!-- タイトル画面 -->
+    <string name="title_tagline">対象のまわりを回りながら撮影し、各写真のカメラ姿勢とあわせて書き出します。3D 再構成の入力データを作るためのアプリです。</string>
+    <string name="action_start_capture">撮影を行う</string>
+    <string name="action_manual">使い方</string>
+    <string name="action_saved_data">保存済みデータ (%1$d)</string>
+    <string name="action_saved_data_empty">保存済みデータ（まだありません）</string>
+    <string name="title_footer">撮影には ARCore 対応端末が必要です</string>
+
+    <!-- 撮影画面 -->
     <string name="shutter">撮影</string>
     <string name="finish">書き出し</string>
+    <string name="help">使い方</string>
 
     <string name="status_idle">セッション開始待ち</string>
     <string name="status_waiting_tracking">端末をゆっくり動かしてトラッキングを開始してください</string>
@@ -18,7 +28,44 @@
     <string name="msg_no_frames">まだ 1 枚も撮影していません。</string>
     <string name="msg_writing">書き出し中…</string>
     <string name="msg_write_failed">書き出しに失敗しました: %1$s</string>
-    <string name="msg_write_done">%1$s を書き出しました。</string>
+
+    <!-- 書き出しの取り出し -->
+    <string name="export_done_title">書き出しました</string>
+    <string name="export_detail">%1$d 枚 ／ %2$s</string>
+    <string name="export_detail_no_count">%1$s</string>
+    <string name="export_keep_note">このデータはアプリ内に残ります。ここを閉じても、タイトル画面の「保存済みデータ」からいつでも取り出せます。</string>
+    <string name="action_save_to_device">端末に保存</string>
+    <string name="action_share">共有して送る</string>
+    <string name="action_close">閉じる</string>
+    <string name="msg_saved_to_device">%1$s を保存しました。</string>
+    <string name="msg_save_failed">保存できませんでした: %1$s</string>
+    <string name="msg_share_failed">共有できるアプリが見つかりません。「端末に保存」を使ってください。</string>
+
+    <string name="saved_list_title">保存済みデータ</string>
+    <string name="saved_list_empty">書き出したデータはまだありません。</string>
+
+    <!-- 撮影中の離脱確認 -->
+    <string name="discard_title">撮影を中断しますか</string>
+    <string name="discard_message">%1$d 枚撮影済みですが、まだ書き出していません。いま戻ると、この撮影データは失われます。</string>
+    <string name="action_keep_capturing">撮影を続ける</string>
+    <string name="action_discard">破棄して戻る</string>
+
+    <!-- 使い方 -->
+    <string name="manual_title">使い方</string>
+    <string name="manual_h_what">このアプリでできること</string>
+    <string name="manual_what">対象物のまわりを回りながら写真を撮ると、1 枚ごとに「カメラがどこから、どの向きで撮ったか」を一緒に記録します。\n\n書き出される ZIP には、写真と transforms.json（カメラ姿勢・レンズパラメータ）が入っています。3D Gaussian Splatting などの 3D 再構成にそのまま渡せる形式です。</string>
+
+    <string name="manual_h_steps">撮影の手順</string>
+    <string name="manual_steps">1. 「撮影を行う」でカメラを起動します。\n\n2. 端末を持って、ゆっくり左右に動かします。画面上部の表示が TRACKING に変わります。\n\n3. TRACKING になっても、撮影ボタンはまだ押せません。「VIO 収束待ち」の表示が消えるまで、3 秒ほど・15 cm 以上動かし続けてください。\n\n4. 「撮影」ボタンで 1 枚ずつ撮ります。対象のまわりを回り込みながら、視点を変えて 30〜100 枚が目安です。\n\n5. 撮り終えたら「書き出し」ボタンを押します。\n\n6. 「端末に保存」または「共有して送る」でデータを取り出します。</string>
+
+    <string name="manual_h_wait">なぜ撮影ボタンがすぐ押せないのか</string>
+    <string name="manual_wait">ARCore は自己位置推定が固まりきる前でも TRACKING と表示します。その状態で撮ると、写真には対象が写っているのに、カメラの向きだけが見当違いに記録されます。しかもデータ上は正常に見えるため、あとから気づくことも直すこともできません。\n\n待ち時間はこれを防ぐためのものです。端末を置いたまま待っても収束しないので、動かし続けてください。</string>
+
+    <string name="manual_h_tips">うまく撮るコツ</string>
+    <string name="manual_tips">・明るい場所で撮る。暗いとトラッキングが外れます。\n・速く振らない。ブレるとトラッキングが外れます。\n・隣り合う写真が 7 割くらい重なるように、少しずつ動かします。\n・同じ場所から連写しても情報は増えません。必ず視点を変えてください。\n・対象を画面の中央に入れ続けてください。</string>
+
+    <string name="manual_h_notes">知っておくこと</string>
+    <string name="manual_notes">・保存される写真は横倒しに見えますが、正常です。カメラの内部パラメータと食い違わせないため、回転させずに保存しています。\n\n・書き出したデータはアプリ内に残ります。共有をキャンセルしても、タイトル画面の「保存済みデータ」から取り出し直せます。\n\n・アプリをアンインストールすると、アプリ内のデータは消えます。残したいものは「端末に保存」で外に出してください。</string>
 
     <string name="share_title">撮影データを共有</string>
 </resources>

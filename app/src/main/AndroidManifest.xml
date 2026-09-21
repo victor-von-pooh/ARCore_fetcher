@@ -25,17 +25,26 @@
             android:name="com.google.ar.core"
             android:value="required" />
 
+        <!--
+            起動はタイトル画面から。カメラ権限と ARCore のインストール要求は
+            MainActivity 側に置いてあるので、撮影を選ぶまで何も尋ねられない。
+        -->
         <activity
-            android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:name=".TitleActivity"
             android:exported="true"
-            android:screenOrientation="locked"
             android:theme="@style/Theme.ARCoreFetcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:exported="false"
+            android:screenOrientation="locked"
+            android:theme="@style/Theme.ARCoreFetcher" />
 
         <!-- 書き出した ZIP を共有シートに渡すための FileProvider。 -->
         <provider
