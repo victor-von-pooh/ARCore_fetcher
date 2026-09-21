@@ -21,6 +21,7 @@ object TransformsJson {
     fun build(
         meta: CaptureMeta,
         intrinsics: Intrinsics,
+        depthIntrinsics: Intrinsics?,
         frames: List<WrittenFrame>,
         refreshedPoses: List<Pose?>,
     ): String {
@@ -33,6 +34,13 @@ object TransformsJson {
             .append(str(CaptureSpec.CAMERA_MODEL)).append(",\n")
         appendIntrinsics(sb, intrinsics, indent = "  ")
         sb.append("\n")
+
+        // 深度が 1 枚も取れなかったセッションではブロックごと省く。
+        // 出ているときは必ず全キーそろう（読み手が分岐を持たなくて済む）。
+        depthIntrinsics?.let {
+            appendDepth(sb, it)
+            sb.append("\n")
+        }
 
         sb.append("  ").append(str("coordinate_convention")).append(": {\n")
         sb.append("    ").append(str("handedness")).append(": ")
@@ -63,7 +71,11 @@ object TransformsJson {
         sb.append("    ").append(str("world_origin")).append(": ")
             .append(str(meta.worldOrigin)).append(",\n")
         sb.append("    ").append(str("origin_refreshed_at_end")).append(": ")
-            .append(meta.originRefreshedAtEnd).append("\n")
+            .append(meta.originRefreshedAtEnd).append(",\n")
+        // 深度が 1 枚も無いとき、端末が非対応だったのか取得に失敗し続けたのかは
+        // これでしか分からない。トップレベルの depth ブロックとは役割が違う。
+        sb.append("    ").append(str("depth_mode")).append(": ")
+            .append(str(CaptureSpec.depthModeOf(meta.depthMode))).append("\n")
         sb.append("  },\n\n")
 
         sb.append("  ").append(str("frames")).append(": [\n")
@@ -83,6 +95,31 @@ object TransformsJson {
         sb.append(indent).append(str("cy")).append(": ").append(num(it.cy)).append(",\n")
         sb.append(indent).append(str("w")).append(": ").append(it.w).append(",\n")
         sb.append(indent).append(str("h")).append(": ").append(it.h).append(",\n")
+    }
+
+    /**
+     * 深度画像側の内部パラメータと画素値の意味。
+     *
+     * **トップレベルの intrinsics とは別のカメラ**として書く。ARCore の深度は
+     * GPU テクスチャの画角に揃っており、保存した JPEG とは画角が違いうるので、
+     * JPEG 用の fl_x / cx で深度を逆投影すると黙って歪む
+     * （[CaptureSpec.DEPTH_ALIGNED_TO]）。姿勢は画像と共通で、フレームの
+     * transform_matrix がそのまま深度カメラの姿勢でもある。
+     */
+    private fun appendDepth(sb: StringBuilder, it: Intrinsics) {
+        sb.append("  ").append(str("depth")).append(": {\n")
+        sb.append("    ").append(str("aligned_to")).append(": ")
+            .append(str(CaptureSpec.DEPTH_ALIGNED_TO)).append(",\n")
+        sb.append("    ").append(str("depth_format")).append(": ")
+            .append(str(CaptureSpec.DEPTH_FORMAT)).append(",\n")
+        sb.append("    ").append(str("confidence_format")).append(": ")
+            .append(str(CaptureSpec.CONFIDENCE_FORMAT)).append(",\n")
+        sb.append("    ").append(str("invalid_value")).append(": ")
+            .append(CaptureSpec.DEPTH_INVALID_VALUE).append(",\n")
+        appendIntrinsics(sb, it, indent = "    ")
+        // appendIntrinsics は末尾にカンマを置くので、最後のキーをここで閉じる。
+        sb.setLength(sb.length - 2)
+        sb.append("\n  },\n")
     }
 
     private fun appendFrame(sb: StringBuilder, frame: WrittenFrame, refreshedPoses: List<Pose?>) {
@@ -130,6 +167,18 @@ object TransformsJson {
         }
         frame.pointCount?.let {
             sb.append(",\n      ").append(str("point_count")).append(": ").append(it)
+        }
+
+        // 深度は取れないフレームが普通に混ざる。取れた種類だけ書き、
+        // 無いフレームはキーごと省く（値が無いのに空文字を置かない）。
+        frame.depthPath?.let {
+            sb.append(",\n      ").append(str("depth_file_path")).append(": ").append(str(it))
+        }
+        frame.rawDepthPath?.let {
+            sb.append(",\n      ").append(str("raw_depth_file_path")).append(": ").append(str(it))
+        }
+        frame.confidencePath?.let {
+            sb.append(",\n      ").append(str("confidence_file_path")).append(": ").append(str(it))
         }
 
         frame.intrinsicsOverride?.let {

@@ -34,12 +34,21 @@ Kotlin と Android が初めての場合は、このリポジトリのコード�
 ```
 capture_20260920T103104/
 ├── transforms.json
-└── images/
-    ├── 000000812345678901.jpg
-    └── ...
+├── images/
+│   ├── 000000812345678901.jpg
+│   └── ...
+├── depth/                       # 深度 (16bit PNG, mm)。端末が対応していれば
+│   ├── 000000812345678901.png
+│   └── ...
+├── raw_depth/                   # 平滑前の深度。同上
+└── confidence/                  # raw_depth の画素ごとの信頼度 (8bit PNG)
 ```
 
-画像ファイル名は `timestamp_ns` の 18 桁ゼロ埋め。連番はフレーム欠損で破綻するので使わない。
+ファイル名は `timestamp_ns` の 18 桁ゼロ埋め。連番はフレーム欠損で破綻するので使わない。
+同じ `timestamp_ns` の JPEG と PNG が同一フレームを指す。
+
+`depth/` 以下は端末が Depth API に対応していて、かつそのフレームで深度が取れたときだけ
+できる。深度が 1 枚も無ければディレクトリごと作らない。
 
 書き出し先は `getExternalFilesDir(null)/captures/` 配下で、同じ場所に ZIP も作られる。
 
@@ -53,6 +62,16 @@ capture_20260920T103104/
   "fl_x": 505.12, "fl_y": 505.12,
   "cx": 320.0, "cy": 240.0,
   "w": 640, "h": 480,
+
+  "depth": {
+    "aligned_to": "gpu_texture",
+    "depth_format": "png16_millimeter",
+    "confidence_format": "png8_uint8",
+    "invalid_value": 0,
+    "fl_x": 126.28, "fl_y": 126.28,
+    "cx": 80.0, "cy": 60.0,
+    "w": 160, "h": 120
+  },
 
   "coordinate_convention": {
     "handedness": "right",
@@ -70,7 +89,8 @@ capture_20260920T103104/
     "arcore_version": "1.47.0",
     "capture_mode": "cpu_image",
     "world_origin": "session",
-    "origin_refreshed_at_end": true
+    "origin_refreshed_at_end": true,
+    "depth_mode": "AUTOMATIC"
   },
 
   "frames": [
@@ -87,7 +107,11 @@ capture_20260920T103104/
       "tracking_failure_reason": "NONE",
       "pose_refreshed": true,
       "tracking_elapsed_ns": 4183000000,
-      "point_count": 312
+      "point_count": 312,
+
+      "depth_file_path": "depth/000000812345678901.png",
+      "raw_depth_file_path": "raw_depth/000000812345678901.png",
+      "confidence_file_path": "confidence/000000812345678901.png"
     }
   ]
 }
@@ -128,6 +152,54 @@ intrinsics はセッション中不変なのでトップレベルに置き、
 
 撮影側でもウォームアップゲート（後述）で収束前のフレームは撮らせないので、
 通常これらの値で弾く必要はない。異常を疑ったときの手がかりとして残してある。
+
+### 深度（省略可能）
+
+端末が Depth API に対応していれば、フレームごとに深度を保存する。
+`Config.DepthMode` は対応している中で一番情報量の多いものを選ぶ。
+
+| モード | 取れるもの |
+|---|---|
+| `AUTOMATIC` | 平滑・穴埋め済みの深度 + raw 深度 + 信頼度（全部） |
+| `RAW_DEPTH_ONLY` | raw 深度 + 信頼度（平滑済みは取れない） |
+| `DISABLED` | なし。端末が非対応 |
+
+実際に有効化できたモードは `capture.depth_mode` に入る。深度が 1 枚も無いセッションで、
+**端末が非対応だったのか、対応しているが取得に失敗し続けたのかはこれでしか分からない**。
+
+画素値は mm の符号なし 16bit で、`0` が「深度なし」。ARCore が返す 16bit を
+マスクもクランプもせずそのまま書いている。信頼度は 0〜255 で、raw 深度の同じ画素に対応する
+（ARCore のドキュメントは 128 未満を捨てる足切りを例に挙げている）。
+
+平滑済みと raw のどちらを使うか、どの信頼度で切るかは**下流が決める**ので、
+撮影側では選別しない。深度が取れなかったフレームもキーを省くだけで捨てない。
+画像と姿勢はそのフレームで有効なので、深度の有無で選別する理由がない。
+
+#### 深度は JPEG と画角が違う
+
+**`depth` ブロックの intrinsics はトップレベルの intrinsics とは別物で、混ぜてはいけない。**
+
+ARCore の深度は GPU テクスチャ側の画角に揃っている。一方このアプリが保存する JPEG は
+`acquireCameraImage()` の CPU 画像で、端末によっては CPU 640x480（4:3）に対して
+テクスチャ 1920x1080（16:9）と画角そのものが違う。**深度画素は JPEG 画素に
+1 対 1 では対応しない**（解像度比で拡大しても合わない）。
+
+そのため深度側の intrinsics は `getTextureIntrinsics()` を深度の解像度へスケールして
+別に書き出し、`aligned_to: "gpu_texture"` で取り違えを宣言してある。
+トップレベルの `fl_x` / `cx` で深度を逆投影すると、エラーにならずに歪んだ点群が出る。
+
+姿勢は画像と共通で、フレームの `transform_matrix` がそのまま深度カメラの姿勢でもある。
+深度画素 `(u, v)` の値 `d`（mm）をカメラ座標に戻すには、`depth` ブロックの値を使って
+
+```
+z = d / 1000                       # メートルへ
+x = (u - cx) * z / fl_x
+y = (v - cy) * z / fl_y            # camera_axes は +Y up / -Z forward
+```
+
+深度の精度は 0.5〜15 m あたりが最良で、それより近い/遠いところは信用しない。
+`AUTOMATIC` の平滑済み深度は**全画素を埋めてくる**ので、推定で埋めた値と実測値の
+区別がつかない。区別が要るなら `raw_depth` と `confidence` を見る。
 
 ## 使い方
 
@@ -314,6 +386,7 @@ JPEG エンコードとディスク書き込みは専用ワーカースレッド
 | quaternion は `(x,y,z,w)` 順のまま出力（`wxyz` へ並べ替えない） | `PoseMath.quaternionXyzw()` |
 | intrinsics は実際に保存した画像の解像度に対応（リサイズ時は同率スケール） | `MainActivity.intrinsicsFor()` |
 | pose は撮影時に確定させず、フレームごとの Anchor から終了直前に回収 | 上記「座標とドリフト補正」 |
+| 深度の intrinsics は `getTextureIntrinsics()` 由来で、JPEG 用とは別物 | 上記「深度は JPEG と画角が違う」。`MainActivity.depthOf` |
 | VIO 収束前はシャッターを無効にする（`tracking_state` では判定できない） | `MainActivity.updateWarmup()` |
 | `TRACKING` 以外のフレームも捨てずに記録 | `captureFrame()` は trackingState で弾かない |
 | ファイル名は `timestamp_ns` の 18 桁ゼロ埋め | `CaptureSessionWriter.writeFrame()` |
@@ -339,6 +412,8 @@ app/src/main/java/com/example/arcorefetcher/
 │   ├── CaptureSessionWriter.kt  # ディレクトリ書き出し・ZIP 化
 │   ├── CaptureStore.kt          # 書き出し済みデータの列挙・共有・端末保存・削除
 │   ├── YuvJpeg.kt               # YUV_420_888 → NV21 → JPEG
+│   ├── DepthImages.kt           # DEPTH16 / Y8 → mm・信頼度の配列
+│   ├── Png.kt                   # 16bit / 8bit グレースケール PNG
 │   └── Zip.kt
 └── render/BackgroundRenderer.kt # カメラ映像を描く最小 GL レンダラ
 ```
@@ -394,6 +469,15 @@ python3 tools/checks.py
     または視線の最小二乗交点への再投影で確認する）
   - `origin_refreshed_at_end` が `true` のままか
   - 撮影ボタンが 3 秒 + 15 cm の条件で有効になるか
+- **深度の保存は実機未検証。** PNG エンコーダは値域・CRC・走査線を独立に
+  デコードして検証したが、ARCore から実際の深度が来る経路は通していない。
+  次の撮影で確認すること:
+  - `capture.depth_mode` が `AUTOMATIC` になるか（対応端末の場合）
+  - `depth` / `raw_depth` / `confidence` の 3 つが揃うか、解像度が一致するか
+  - `depth` ブロックの `w` / `h` が PNG の実寸と一致するか
+  - 深度を `depth` ブロックの intrinsics で逆投影した点群が、複数フレームで
+    重なるか（重ならなければ `aligned_to` の前提か姿勢のどちらかが疑わしい）
+  - 深度取得のぶんシャッターの応答が落ちていないか
 - Gradle Wrapper の JAR (`gradle/wrapper/gradle-wrapper.jar`) を含めていない。
   Android Studio が自動生成するが、失敗したら `gradle wrapper --gradle-version 8.9` で用意する
 
@@ -424,7 +508,6 @@ python3 tools/checks.py
 | 項目 | 内容 |
 |---|---|
 | 展開済みディレクトリの自動削除 | ZIP を作ったあとも元のディレクトリを残しているので容量を約 2 倍使う。自動で消すかは未決（ZIP 化が失敗したときの退避先でもある） |
-| depth | `Config.DepthMode` を有効化し `Frame.acquireDepthImage16Bits()` を 16bit grayscale PNG（mm）で保存。オプショナル項目なので後方互換に追加できる |
 | `shared_camera` | 高解像度静止画。静止画とプレビューで解像度が変わるため、フレーム単位の intrinsics 上書きが必要。`PendingFrame.intrinsicsOverride` として配線済み |
 | `exposure_ns` / `iso` | `acquireCameraImage()` の `Image` には撮影メタデータが付かない。取るなら Shared Camera 経由で `CaptureResult` を読む必要がある。オプショナル |
 | `distortion` | ARCore は歪み係数を返さない。入れるなら別途チェッカーボード校正が必要 |

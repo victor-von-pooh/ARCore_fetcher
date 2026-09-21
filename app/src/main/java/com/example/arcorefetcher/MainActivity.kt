@@ -3,6 +3,7 @@ package com.example.arcorefetcher
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.Image
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.os.Build
@@ -20,6 +21,10 @@ import com.example.arcorefetcher.capture.CaptureMeta
 import com.example.arcorefetcher.capture.CaptureSessionWriter
 import com.example.arcorefetcher.capture.CaptureSpec
 import com.example.arcorefetcher.capture.CaptureStore
+import com.example.arcorefetcher.capture.ConfidenceMap
+import com.example.arcorefetcher.capture.DepthCapture
+import com.example.arcorefetcher.capture.DepthImages
+import com.example.arcorefetcher.capture.DepthMap
 import com.example.arcorefetcher.capture.Intrinsics
 import com.example.arcorefetcher.capture.NO_ANCHOR
 import com.example.arcorefetcher.capture.PendingFrame
@@ -74,6 +79,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     private var session: Session? = null
     private var installRequested = false
+
+    /**
+     * 実際に有効化できた depth モード。非対応端末では DISABLED のまま。
+     *
+     * [captureFrame] は `RAW_DEPTH_ONLY` のとき平滑済み深度を取りにいってはいけない
+     * （ARCore が例外を投げる）ので、モードを覚えておく必要がある。
+     */
+    private var depthMode: Config.DepthMode = Config.DepthMode.DISABLED
     private var permissionRequested = false
 
     /** UI スレッド → GL スレッドの依頼。 */
@@ -296,6 +309,8 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             // 撮影に不要な処理は切って、CPU 画像の取得にフレーム時間を回す。
             config.planeFindingMode = Config.PlaneFindingMode.DISABLED
             config.lightEstimationMode = Config.LightEstimationMode.DISABLED
+            depthMode = selectDepthMode(session)
+            config.depthMode = depthMode
             session.configure(config)
 
             this.session = session
@@ -331,6 +346,25 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         session.cameraConfig = best
         Log.i(TAG, "camera config: cpu=${best.imageSize}, gpu=${best.textureSize}")
     }
+
+    /**
+     * 端末が対応している中で一番情報量の多い depth モードを選ぶ。
+     *
+     * AUTOMATIC は平滑・穴埋め済みの深度に加えて raw 深度と信頼度も取れるが、
+     * RAW_DEPTH_ONLY では平滑済みの方が取れない。どれを使うかは下流が決めるので、
+     * 撮影側は取れるものが多い方に倒す。
+     *
+     * 深度は**足せない情報**である一方、非対応でも撮影自体は成立する。
+     * よって非対応なら DISABLED のまま黙って続ける（撮影を止めない）。
+     */
+    private fun selectDepthMode(session: Session): Config.DepthMode = when {
+        session.isDepthModeSupported(Config.DepthMode.AUTOMATIC) ->
+            Config.DepthMode.AUTOMATIC
+        session.isDepthModeSupported(Config.DepthMode.RAW_DEPTH_ONLY) ->
+            Config.DepthMode.RAW_DEPTH_ONLY
+        else ->
+            Config.DepthMode.DISABLED
+    }.also { Log.i(TAG, "depth mode: $it") }
 
     // ------------------------------------------------------------------
     // GLSurfaceView.Renderer — ここから下はすべて GL スレッド
@@ -518,9 +552,73 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                 intrinsics = intrinsicsFor(camera.imageIntrinsics, width, height),
                 trackingElapsedNs = warmupElapsedNs,
                 pointCount = pointCountOf(frame),
+                depth = depthOf(frame, camera),
             )
         )
     }
+
+    /**
+     * このフレームの深度一式。端末が非対応なら null。
+     *
+     * 深度が取れなくてもフレームは捨てない。深度は `NotYetAvailableException` で
+     * 普通に欠けるが、画像と姿勢はそのフレームで有効なので、深度の有無で
+     * 選別してはいけない（選別の基準は下流が決める）。
+     *
+     * intrinsics は **`textureIntrinsics`** を深度の解像度へスケールして作る。
+     * 深度は GPU テクスチャの画角に揃っていて、`imageIntrinsics`（CPU 画像）とは
+     * 画角が違いうる。ここで imageIntrinsics を使うと、下流は気づかないまま
+     * 歪んだ点群を得る。
+     */
+    private fun depthOf(frame: Frame, camera: Camera): DepthCapture? {
+        if (depthMode == Config.DepthMode.DISABLED) return null
+
+        // 平滑・穴埋め済みの深度は AUTOMATIC のときだけ取れる。
+        val smooth = if (depthMode == Config.DepthMode.AUTOMATIC) {
+            acquireDepth("depth") { frame.acquireDepthImage16Bits() }
+        } else {
+            null
+        }
+        val raw = acquireDepth("raw depth") { frame.acquireRawDepthImage16Bits() }
+        val confidence = acquireConfidence(frame)
+
+        // 深度が 1 枚も取れなければ信頼度だけ残しても使い道がないので捨てる。
+        // 3 種類は同じ解像度で返ると ARCore が保証しているので、intrinsics は
+        // 取れた方の解像度から作ればよい。
+        val reference = smooth ?: raw ?: return null
+        return DepthCapture(
+            depth = smooth,
+            rawDepth = raw,
+            confidence = confidence,
+            intrinsics = intrinsicsFor(
+                camera.textureIntrinsics, reference.width, reference.height,
+            ),
+        )
+    }
+
+    private fun acquireDepth(label: String, acquire: () -> Image): DepthMap? =
+        withImage(label, acquire) { DepthImages.toMillimeters(it) }
+
+    private fun acquireConfidence(frame: Frame): ConfidenceMap? =
+        withImage("confidence", { frame.acquireRawDepthConfidenceImage() }) {
+            DepthImages.toConfidence(it)
+        }
+
+    /**
+     * ARCore の [Image] を開いてコピーし、必ず閉じる。
+     *
+     * CPU 画像と同じくプロセス共有バッファなので、握ったままにすると
+     * カメラパイプラインが止まる。取得に失敗しても撮影は続けるので、
+     * 警告だけ残して null を返す。
+     */
+    private fun <T> withImage(label: String, acquire: () -> Image, copy: (Image) -> T): T? =
+        runCatching {
+            val image = acquire()
+            try {
+                copy(image)
+            } finally {
+                image.close()
+            }
+        }.onFailure { Log.w(TAG, "$label を取得できません", it) }.getOrNull()
 
     /**
      * このフレームで見えている特徴点の数。取れなければ null。
@@ -674,6 +772,7 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         sessionId = SimpleDateFormat("yyyyMMdd'T'HHmmssZ", Locale.US).format(Date()),
         deviceModel = Build.MODEL ?: "unknown",
         arcoreVersion = arCoreVersion(),
+        depthMode = CaptureSpec.depthModeOf(depthMode.name),
     )
 
     /**

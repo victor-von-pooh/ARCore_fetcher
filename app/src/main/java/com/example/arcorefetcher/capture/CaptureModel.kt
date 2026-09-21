@@ -14,8 +14,9 @@ object CaptureSpec {
     /**
      * 出力ファイルに書き込む形式識別子。破壊的変更のとき major を上げる。
      *
-     * `tracking_elapsed_ns` / `point_count` は**省略可能な追加項目**なので、
-     * これらを足しても既存の読み手は壊れない。よって識別子は据え置く。
+     * `tracking_elapsed_ns` / `point_count` / `depth`・`depth_file_path` 一式は
+     * **省略可能な追加項目**なので、これらを足しても既存の読み手は壊れない。
+     * よって識別子は据え置く。
      */
     const val SPEC_VERSION = "arcore-fetcher/capture/1.0"
     const val CAMERA_MODEL = "PINHOLE"
@@ -27,6 +28,31 @@ object CaptureSpec {
     const val TRANSFORM_DIRECTION = "camera-to-world"
     const val LENGTH_UNIT = "meter"
     val WORLD_UP = floatArrayOf(0f, 1f, 0f)
+
+    /**
+     * 深度画像が揃っている座標系。
+     *
+     * ARCore の深度は **GPU テクスチャ側**の画角に揃っており、`acquireCameraImage()`
+     * で保存している CPU 画像とは画角が違いうる（端末により CPU 640x480 / テクスチャ
+     * 1920x1080 など）。よって深度画素は JPEG 画素と 1 対 1 に対応しない。
+     * 公式サンプルが深度の逆投影に `getTextureIntrinsics()` を使うのがその根拠。
+     *
+     * トップレベルの intrinsics（JPEG 用）で深度を逆投影すると黙って歪むので、
+     * 深度側の intrinsics を別に書き出し、この宣言で取り違えを防ぐ。
+     */
+    const val DEPTH_ALIGNED_TO = "gpu_texture"
+
+    /** 深度 PNG の画素値の意味。16bit グレースケール、単位はミリメートル。 */
+    const val DEPTH_FORMAT = "png16_millimeter"
+
+    /** 信頼度 PNG の画素値の意味。8bit グレースケール、0 が最低で 255 が最高。 */
+    const val CONFIDENCE_FORMAT = "png8_uint8"
+
+    /** 深度が取れなかった画素の値。raw 側は穴が多く、平滑側でも端では出る。 */
+    const val DEPTH_INVALID_VALUE = 0
+
+    /** depth_mode の許容値。端末が非対応なら DISABLED。 */
+    val DEPTH_MODES = setOf("DISABLED", "AUTOMATIC", "RAW_DEPTH_ONLY")
 
     /** 画像ファイル名は timestamp_ns の 18 桁ゼロ埋め。連番はフレーム欠損時に破綻するので使わない。 */
     const val FILENAME_PAD = 18
@@ -53,6 +79,9 @@ object CaptureSpec {
 
     fun failureReasonOf(name: String): String =
         if (name in FAILURE_REASONS) name else "BAD_STATE"
+
+    fun depthModeOf(name: String): String =
+        if (name in DEPTH_MODES) name else "DISABLED"
 }
 
 /**
@@ -69,6 +98,49 @@ data class Intrinsics(
     val cy: Float,
     val w: Int,
     val h: Int,
+)
+
+/**
+ * 深度画像 1 枚。画素値は mm で、0 は「深度なし」。
+ *
+ * ARCore は 16bit をまるごと mm として報告するので、符号なし 16bit として読むこと
+ * （[ShortArray] に入れているのは領域の都合で、値としては 0-65535）。
+ */
+class DepthMap(
+    val width: Int,
+    val height: Int,
+    val millimeters: ShortArray,
+)
+
+/** 信頼度画像 1 枚。画素値は 0-255 で、raw 深度の同じ画素に対応する。 */
+class ConfidenceMap(
+    val width: Int,
+    val height: Int,
+    val values: ByteArray,
+)
+
+/**
+ * 1 フレーム分の深度一式。取れなかった種類は null。
+ *
+ * **取れなくてもフレームは捨てない。** 深度は平滑側・raw 側とも
+ * `NotYetAvailableException` で普通に欠けるが、画像と姿勢は有効なので、
+ * 深度の有無でフレームを選別してはいけない。
+ *
+ * [depth] は平滑・穴埋め済み（`AUTOMATIC` のときだけ取れる）。
+ * [rawDepth] は穴だらけの生値で、[confidence] が同じ画素の確からしさを持つ。
+ * どちらを使うか、どの信頼度で足切りするかは下流が決める。
+ */
+class DepthCapture(
+    val depth: DepthMap?,
+    val rawDepth: DepthMap?,
+    val confidence: ConfidenceMap?,
+    /**
+     * 深度画像の解像度に対応した内部パラメータ。
+     *
+     * `getTextureIntrinsics()` を深度の解像度へスケールしたもの。
+     * **JPEG 用の intrinsics とは別物**（[CaptureSpec.DEPTH_ALIGNED_TO]）。
+     */
+    val intrinsics: Intrinsics,
 )
 
 /** 撮影セッション単位のメタ情報。 */
@@ -91,6 +163,13 @@ data class CaptureMeta(
      * false になる。その場合、該当フレームは撮影時点の姿勢のまま出力される。
      */
     val originRefreshedAtEnd: Boolean = true,
+    /**
+     * 実際に有効化できた `Config.DepthMode`。端末が非対応なら "DISABLED"。
+     *
+     * 深度が 1 枚も入っていないセッションについて、「端末が非対応だった」のか
+     * 「対応しているが取得に失敗し続けた」のかは、これでしか区別できない。
+     */
+    val depthMode: String = "DISABLED",
 )
 
 /**
@@ -151,6 +230,13 @@ class PendingFrame(
     val trackingElapsedNs: Long? = null,
     /** 特徴点数。少ないフレームは姿勢推定の信頼度が低い。 */
     val pointCount: Int? = null,
+    /**
+     * このフレームの深度。端末が非対応、または取得できなかったフレームは null。
+     *
+     * [nv21] と同じく GL スレッドでコピー済みの配列で、ARCore の Image は
+     * ここへ載せる時点で close してある。
+     */
+    val depth: DepthCapture? = null,
     val exposureNs: Long? = null,
     val iso: Int? = null,
 )
@@ -166,6 +252,10 @@ class WrittenFrame(
     val intrinsicsOverride: Intrinsics?,
     val trackingElapsedNs: Long?,
     val pointCount: Int?,
+    /** 書き出した深度 PNG の相対パス。そのフレームで取れなかったものは null。 */
+    val depthPath: String?,
+    val rawDepthPath: String?,
+    val confidencePath: String?,
     val exposureNs: Long?,
     val iso: Int?,
 )

@@ -18,7 +18,7 @@ class CaptureSessionWriter(
     outputRoot: File,
     private val meta: CaptureMeta,
 ) {
-    /** 出力レイアウト: capture_<stamp>/{transforms.json, images/} */
+    /** 出力レイアウト: capture_<stamp>/{transforms.json, images/, depth/, raw_depth/, confidence/} */
     val sessionDir: File = File(outputRoot, "capture_${meta.sessionId.dirStamp()}")
     private val imagesDir = File(sessionDir, IMAGES_DIR)
 
@@ -31,6 +31,12 @@ class CaptureSessionWriter(
 
     /** セッション中 intrinsics は不変なのでトップレベルに置く。 */
     private var baseIntrinsics: Intrinsics? = null
+
+    /**
+     * 深度画像の intrinsics。解像度が変わらない限りセッション中不変なので、
+     * JPEG 用と同じくトップレベルに置く。深度が 1 枚も来なければ null のまま。
+     */
+    private var baseDepthIntrinsics: Intrinsics? = null
 
     @Volatile
     private var closed = false
@@ -99,6 +105,10 @@ class CaptureSessionWriter(
         val override = frame.intrinsicsOverride
             ?: frame.intrinsics.takeIf { it != baseIntrinsics }
 
+        val depthName = frame.timestampNs.toString().padStart(CaptureSpec.FILENAME_PAD, '0') + ".png"
+        val depth = frame.depth
+        if (depth != null && baseDepthIntrinsics == null) baseDepthIntrinsics = depth.intrinsics
+
         written += WrittenFrame(
             filePath = "$IMAGES_DIR/$name",
             timestampNs = frame.timestampNs,
@@ -109,9 +119,55 @@ class CaptureSessionWriter(
             intrinsicsOverride = override,
             trackingElapsedNs = frame.trackingElapsedNs,
             pointCount = frame.pointCount,
+            depthPath = writeDepth(depth?.depth, DEPTH_DIR, depthName),
+            rawDepthPath = writeDepth(depth?.rawDepth, RAW_DEPTH_DIR, depthName),
+            confidencePath = writeConfidence(depth?.confidence, depthName),
             exposureNs = frame.exposureNs,
             iso = frame.iso,
         )
+    }
+
+    /**
+     * 深度 PNG を書いて相対パスを返す。[map] が null なら何もしない。
+     *
+     * **深度の失敗でフレームを落とさない。** 書けなければ null を返し、
+     * 画像・姿勢だけのフレームとして記録する。深度は欠けても他の値は有効で、
+     * どこまで揃っていれば使えるかを決めるのは下流。
+     */
+    private fun writeDepth(map: DepthMap?, dir: String, name: String): String? {
+        if (map == null) return null
+        return runCatching {
+            val file = File(ensureDir(dir), name)
+            FileOutputStream(file).buffered().use {
+                Png.writeGray16(map.millimeters, map.width, map.height, it)
+            }
+            "$dir/$name"
+        }.onFailure { Log.e(TAG, "深度の書き出しに失敗: $dir/$name", it) }.getOrNull()
+    }
+
+    private fun writeConfidence(map: ConfidenceMap?, name: String): String? {
+        if (map == null) return null
+        return runCatching {
+            val file = File(ensureDir(CONFIDENCE_DIR), name)
+            FileOutputStream(file).buffered().use {
+                Png.writeGray8(map.values, map.width, map.height, it)
+            }
+            "$CONFIDENCE_DIR/$name"
+        }.onFailure { Log.e(TAG, "信頼度の書き出しに失敗: $name", it) }.getOrNull()
+    }
+
+    /**
+     * 深度用のディレクトリを必要になってから作る。
+     *
+     * 端末が深度に非対応なら空のディレクトリを残さない。出力を見ただけで
+     * 「深度を撮る構成だったか」が分かる状態を保つ。
+     */
+    private fun ensureDir(name: String): File {
+        val dir = File(sessionDir, name)
+        if (!dir.exists() && !dir.mkdirs()) {
+            throw IllegalStateException("出力先を作成できません: $dir")
+        }
+        return dir
     }
 
     private fun finalizeSession(refreshedPoses: List<Pose?>): WriteResult {
@@ -130,7 +186,9 @@ class CaptureSessionWriter(
         }
         val effectiveMeta = meta.copy(originRefreshedAtEnd = unrefreshed == 0)
 
-        val json = TransformsJson.build(effectiveMeta, intrinsics, written, refreshedPoses)
+        val json = TransformsJson.build(
+            effectiveMeta, intrinsics, baseDepthIntrinsics, written, refreshedPoses,
+        )
         File(sessionDir, "transforms.json").writeText(json, Charsets.UTF_8)
 
         val zip = Zip.zipDirectory(sessionDir, File(sessionDir.parentFile, "${sessionDir.name}.zip"))
@@ -145,6 +203,9 @@ class CaptureSessionWriter(
     companion object {
         private const val TAG = "CaptureSessionWriter"
         private const val IMAGES_DIR = "images"
+        private const val DEPTH_DIR = "depth"
+        private const val RAW_DEPTH_DIR = "raw_depth"
+        private const val CONFIDENCE_DIR = "confidence"
 
         /** session_id `20260920T103104+0900` からディレクトリ名用の `20260920T103104` を取る。 */
         private fun String.dirStamp(): String =
