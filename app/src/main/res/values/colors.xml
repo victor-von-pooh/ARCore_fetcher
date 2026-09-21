@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#1B2430</color>
+
+    <!--
+        使い方の図の配色。ダークテーマ上で読めることを前提にした値。
+        tools/figures/draw.py の定数と一致させること（ずれると図の意図が崩れる）。
+    -->
+    <color name="figure_ink">#E6E9EF</color>
+    <color name="figure_dim">#7C8798</color>
+    <color name="figure_accent">#8AB4F8</color>
+    <color name="figure_good">#7FD1A0</color>
+    <color name="figure_bad">#F2857F</color>
+    <color name="figure_surface">#2A3442</color>
 </resources>

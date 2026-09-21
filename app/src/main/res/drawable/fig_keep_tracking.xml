@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    tools/figures/figures.py から生成。直接編集しないこと。
+    再生成: cd tools/figures && python3 convert.py ../../app/src/main/res/drawable
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="240dp"
+    android:viewportWidth="320"
+    android:viewportHeight="240">
+    <path
+        android:pathData="M20,8 L154,8 A8,8 0 0,1 162,16 L162,108 A8,8 0 0,1 154,116 L20,116 A8,8 0 0,1 12,108 L12,16 A8,8 0 0,1 20,8 Z"
+        android:fillColor="@color/figure_surface"
+        android:fillAlpha="0.5"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.4" />
+    <path
+        android:pathData="M28,104 L146,104 L126,70 L48,70 Z"
+        android:fillColor="@color/figure_dim"
+        android:fillAlpha="0.1" />
+    <path
+        android:pathData="M71.7,84 A2.3,2.3 0 1,0 76.3,84 A2.3,2.3 0 1,0 71.7,84 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.22" />
+    <path
+        android:pathData="M105.7,94 A2.3,2.3 0 1,0 110.3,94 A2.3,2.3 0 1,0 105.7,94 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.22" />
+    <path
+        android:pathData="M34,34 A8,8 0 1,0 50,34 A8,8 0 1,0 34,34 Z"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.8" />
+    <path
+        android:pathData="M42,20 L42,24"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.4"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M56,34 L52,34"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.6"
+        android:strokeAlpha="0.4"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M82,31 L92,31 A5,5 0 0,1 97,36 L97,60 A5,5 0 0,1 92,65 L82,65 A5,5 0 0,1 77,60 L77,36 A5,5 0 0,1 82,31 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.8" />
+    <path
+        android:pathData="M83.6,40 A3.4,3.4 0 1,0 90.4,40 A3.4,3.4 0 1,0 83.6,40 Z"
+        android:fillColor="@color/figure_dim" />
+    <path
+        android:pathData="M82.6,58 L91.4,58"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M131,26 A11,11 0 1,0 153,26 A11,11 0 1,0 131,26 Z"
+        android:fillColor="@color/figure_bad"
+        android:fillAlpha="0.18" />
+    <path
+        android:pathData="M131,26 A11,11 0 1,0 153,26 A11,11 0 1,0 131,26 Z"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M137.38,21.38 L146.62,30.62"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M146.62,21.38 L137.38,30.62"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M166,8 L300,8 A8,8 0 0,1 308,16 L308,108 A8,8 0 0,1 300,116 L166,116 A8,8 0 0,1 158,108 L158,16 A8,8 0 0,1 166,8 Z"
+        android:fillColor="@color/figure_surface"
+        android:fillAlpha="0.5"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.4" />
+    <path
+        android:pathData="M174,104 L292,104 L272,70 L194,70 Z"
+        android:fillColor="@color/figure_dim"
+        android:fillAlpha="0.2" />
+    <path
+        android:pathData="M195.7,82 A2.3,2.3 0 1,0 200.3,82 A2.3,2.3 0 1,0 195.7,82 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M217.7,76 A2.3,2.3 0 1,0 222.3,76 A2.3,2.3 0 1,0 217.7,76 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M241.7,80 A2.3,2.3 0 1,0 246.3,80 A2.3,2.3 0 1,0 241.7,80 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M263.7,76 A2.3,2.3 0 1,0 268.3,76 A2.3,2.3 0 1,0 263.7,76 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M185.7,94 A2.3,2.3 0 1,0 190.3,94 A2.3,2.3 0 1,0 185.7,94 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M209.7,90 A2.3,2.3 0 1,0 214.3,90 A2.3,2.3 0 1,0 209.7,90 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M235.7,96 A2.3,2.3 0 1,0 240.3,96 A2.3,2.3 0 1,0 235.7,96 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M259.7,92 A2.3,2.3 0 1,0 264.3,92 A2.3,2.3 0 1,0 259.7,92 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M281.7,88 A2.3,2.3 0 1,0 286.3,88 A2.3,2.3 0 1,0 281.7,88 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M201.7,100 A2.3,2.3 0 1,0 206.3,100 A2.3,2.3 0 1,0 201.7,100 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M249.7,100 A2.3,2.3 0 1,0 254.3,100 A2.3,2.3 0 1,0 249.7,100 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M273.7,98 A2.3,2.3 0 1,0 278.3,98 A2.3,2.3 0 1,0 273.7,98 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.45" />
+    <path
+        android:pathData="M209,31 L219,31 A5,5 0 0,1 224,36 L224,60 A5,5 0 0,1 219,65 L209,65 A5,5 0 0,1 204,60 L204,36 A5,5 0 0,1 209,31 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.6" />
+    <path
+        android:pathData="M210.6,40 A3.4,3.4 0 1,0 217.4,40 A3.4,3.4 0 1,0 210.6,40 Z"
+        android:fillColor="@color/figure_dim" />
+    <path
+        android:pathData="M209.6,58 L218.4,58"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M221,31 L231,31 A5,5 0 0,1 236,36 L236,60 A5,5 0 0,1 231,65 L221,65 A5,5 0 0,1 216,60 L216,36 A5,5 0 0,1 221,31 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M222.6,40 A3.4,3.4 0 1,0 229.4,40 A3.4,3.4 0 1,0 222.6,40 Z"
+        android:fillColor="@color/figure_dim" />
+    <path
+        android:pathData="M221.6,58 L230.4,58"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M233,31 L243,31 A5,5 0 0,1 248,36 L248,60 A5,5 0 0,1 243,65 L233,65 A5,5 0 0,1 228,60 L228,36 A5,5 0 0,1 233,31 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2.4" />
+    <path
+        android:pathData="M234.6,40 A3.4,3.4 0 1,0 241.4,40 A3.4,3.4 0 1,0 234.6,40 Z"
+        android:fillColor="@color/figure_ink" />
+    <path
+        android:pathData="M233.6,58 L242.4,58"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M256,52 L275,52"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M284,52 L275,56 L275,48 Z"
+        android:fillColor="@color/figure_bad"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.24"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M277,26 A11,11 0 1,0 299,26 A11,11 0 1,0 277,26 Z"
+        android:fillColor="@color/figure_bad"
+        android:fillAlpha="0.18" />
+    <path
+        android:pathData="M277,26 A11,11 0 1,0 299,26 A11,11 0 1,0 277,26 Z"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M283.38,21.38 L292.62,30.62"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M292.62,21.38 L283.38,30.62"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M20,124 L154,124 A8,8 0 0,1 162,132 L162,224 A8,8 0 0,1 154,232 L20,232 A8,8 0 0,1 12,224 L12,132 A8,8 0 0,1 20,124 Z"
+        android:fillColor="@color/figure_surface"
+        android:fillAlpha="0.5"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.4" />
+    <path
+        android:pathData="M28,220 L146,220 L126,186 L48,186 Z"
+        android:fillColor="@color/figure_dim"
+        android:fillAlpha="0.26" />
+    <path
+        android:pathData="M71.7,200 A2.3,2.3 0 1,0 76.3,200 A2.3,2.3 0 1,0 71.7,200 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.3" />
+    <path
+        android:pathData="M105.7,210 A2.3,2.3 0 1,0 110.3,210 A2.3,2.3 0 1,0 105.7,210 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.3" />
+    <path
+        android:pathData="M56,216 L100,188"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="6"
+        android:strokeAlpha="0.5"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M74,218 L112,194"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="4"
+        android:strokeAlpha="0.3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M82,143 L92,143 A5,5 0 0,1 97,148 L97,172 A5,5 0 0,1 92,177 L82,177 A5,5 0 0,1 77,172 L77,148 A5,5 0 0,1 82,143 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2.2" />
+    <path
+        android:pathData="M83.6,152 A3.4,3.4 0 1,0 90.4,152 A3.4,3.4 0 1,0 83.6,152 Z"
+        android:fillColor="@color/figure_ink" />
+    <path
+        android:pathData="M82.6,170 L91.4,170"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M131,142 A11,11 0 1,0 153,142 A11,11 0 1,0 131,142 Z"
+        android:fillColor="@color/figure_bad"
+        android:fillAlpha="0.18" />
+    <path
+        android:pathData="M131,142 A11,11 0 1,0 153,142 A11,11 0 1,0 131,142 Z"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M137.38,137.38 L146.62,146.62"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M146.62,137.38 L137.38,146.62"
+        android:strokeColor="@color/figure_bad"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M166,124 L300,124 A8,8 0 0,1 308,132 L308,224 A8,8 0 0,1 300,232 L166,232 A8,8 0 0,1 158,224 L158,132 A8,8 0 0,1 166,124 Z"
+        android:fillColor="@color/figure_surface"
+        android:fillAlpha="0.5"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.4" />
+    <path
+        android:pathData="M174,220 L292,220 L272,186 L194,186 Z"
+        android:fillColor="@color/figure_dim"
+        android:fillAlpha="0.24" />
+    <path
+        android:pathData="M195.7,198 A2.3,2.3 0 1,0 200.3,198 A2.3,2.3 0 1,0 195.7,198 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M217.7,192 A2.3,2.3 0 1,0 222.3,192 A2.3,2.3 0 1,0 217.7,192 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M241.7,196 A2.3,2.3 0 1,0 246.3,196 A2.3,2.3 0 1,0 241.7,196 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M263.7,192 A2.3,2.3 0 1,0 268.3,192 A2.3,2.3 0 1,0 263.7,192 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M185.7,210 A2.3,2.3 0 1,0 190.3,210 A2.3,2.3 0 1,0 185.7,210 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M209.7,206 A2.3,2.3 0 1,0 214.3,206 A2.3,2.3 0 1,0 209.7,206 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M235.7,212 A2.3,2.3 0 1,0 240.3,212 A2.3,2.3 0 1,0 235.7,212 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M259.7,208 A2.3,2.3 0 1,0 264.3,208 A2.3,2.3 0 1,0 259.7,208 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M281.7,204 A2.3,2.3 0 1,0 286.3,204 A2.3,2.3 0 1,0 281.7,204 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M201.7,216 A2.3,2.3 0 1,0 206.3,216 A2.3,2.3 0 1,0 201.7,216 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M249.7,216 A2.3,2.3 0 1,0 254.3,216 A2.3,2.3 0 1,0 249.7,216 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M273.7,214 A2.3,2.3 0 1,0 278.3,214 A2.3,2.3 0 1,0 273.7,214 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.95" />
+    <path
+        android:pathData="M215,143 L225,143 A5,5 0 0,1 230,148 L230,172 A5,5 0 0,1 225,177 L215,177 A5,5 0 0,1 210,172 L210,148 A5,5 0 0,1 215,143 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2.2" />
+    <path
+        android:pathData="M216.6,152 A3.4,3.4 0 1,0 223.4,152 A3.4,3.4 0 1,0 216.6,152 Z"
+        android:fillColor="@color/figure_ink" />
+    <path
+        android:pathData="M215.6,170 L224.4,170"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M238,160 L254,160"
+        android:strokeColor="@color/figure_good"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M262,160 L254,163.6 L254,156.4 Z"
+        android:fillColor="@color/figure_good"
+        android:strokeColor="@color/figure_good"
+        android:strokeWidth="2.08"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M277,142 A11,11 0 1,0 299,142 A11,11 0 1,0 277,142 Z"
+        android:fillColor="@color/figure_good"
+        android:fillAlpha="0.18" />
+    <path
+        android:pathData="M277,142 A11,11 0 1,0 299,142 A11,11 0 1,0 277,142 Z"
+        android:strokeColor="@color/figure_good"
+        android:strokeWidth="2" />
+    <path
+        android:pathData="M283.05,142 L286.9,145.85 L293.5,137.6"
+        android:strokeColor="@color/figure_good"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

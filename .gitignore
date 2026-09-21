@@ -9,3 +9,6 @@ captures/
 .cxx/
 *.apk
 *.aab
+
+# 図の生成スクリプトのキャッシュ
+__pycache__/

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    tools/figures/figures.py から生成。直接編集しないこと。
+    再生成: cd tools/figures && python3 convert.py ../../app/src/main/res/drawable
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="240dp"
+    android:viewportWidth="320"
+    android:viewportHeight="240">
+    <path
+        android:pathData="M18,232 L302,232 L250,150 L70,150 Z"
+        android:fillColor="@color/figure_surface"
+        android:fillAlpha="0.85" />
+    <path
+        android:pathData="M18,232 L302,232 L250,150 L70,150 Z"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="1.6"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M93.4,176 A2.6,2.6 0 1,0 98.6,176 A2.6,2.6 0 1,0 93.4,176 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M125.4,168 A2.6,2.6 0 1,0 130.6,168 A2.6,2.6 0 1,0 125.4,168 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M160.4,160 A2.6,2.6 0 1,0 165.6,160 A2.6,2.6 0 1,0 160.4,160 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M195.4,166 A2.6,2.6 0 1,0 200.6,166 A2.6,2.6 0 1,0 195.4,166 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M229.4,176 A2.6,2.6 0 1,0 234.6,176 A2.6,2.6 0 1,0 229.4,176 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M81.4,200 A2.6,2.6 0 1,0 86.6,200 A2.6,2.6 0 1,0 81.4,200 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M119.4,192 A2.6,2.6 0 1,0 124.6,192 A2.6,2.6 0 1,0 119.4,192 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M157.4,186 A2.6,2.6 0 1,0 162.6,186 A2.6,2.6 0 1,0 157.4,186 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M200.4,194 A2.6,2.6 0 1,0 205.6,194 A2.6,2.6 0 1,0 200.4,194 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M240.4,204 A2.6,2.6 0 1,0 245.6,204 A2.6,2.6 0 1,0 240.4,204 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M67.4,222 A2.6,2.6 0 1,0 72.6,222 A2.6,2.6 0 1,0 67.4,222 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M109.4,216 A2.6,2.6 0 1,0 114.6,216 A2.6,2.6 0 1,0 109.4,216 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M155.4,212 A2.6,2.6 0 1,0 160.6,212 A2.6,2.6 0 1,0 155.4,212 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M205.4,218 A2.6,2.6 0 1,0 210.6,218 A2.6,2.6 0 1,0 205.4,218 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M255.4,226 A2.6,2.6 0 1,0 260.6,226 A2.6,2.6 0 1,0 255.4,226 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M137.4,176 A2.6,2.6 0 1,0 142.6,176 A2.6,2.6 0 1,0 137.4,176 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M177.4,200 A2.6,2.6 0 1,0 182.6,200 A2.6,2.6 0 1,0 177.4,200 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M97.4,188 A2.6,2.6 0 1,0 102.6,188 A2.6,2.6 0 1,0 97.4,188 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M223.4,190 A2.6,2.6 0 1,0 228.6,190 A2.6,2.6 0 1,0 223.4,190 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M143.4,222 A2.6,2.6 0 1,0 148.6,222 A2.6,2.6 0 1,0 143.4,222 Z"
+        android:fillColor="@color/figure_accent"
+        android:fillAlpha="0.9" />
+    <path
+        android:pathData="M152,63 L168,63 A5,5 0 0,1 173,68 L173,104 A5,5 0 0,1 168,109 L152,109 A5,5 0 0,1 147,104 L147,68 A5,5 0 0,1 152,63 Z"
+        android:fillColor="@color/figure_surface"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2.4" />
+    <path
+        android:pathData="M156.6,72 A3.4,3.4 0 1,0 163.4,72 A3.4,3.4 0 1,0 156.6,72 Z"
+        android:fillColor="@color/figure_ink" />
+    <path
+        android:pathData="M154.28,102 L165.72,102"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M120,86 L88,86"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M78,86 L88,81.5 L88,90.5 Z"
+        android:fillColor="@color/figure_ink"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2.4"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M200,86 L232,86"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M242,86 L232,90.5 L232,81.5 Z"
+        android:fillColor="@color/figure_ink"
+        android:strokeColor="@color/figure_ink"
+        android:strokeWidth="2.4"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M84 108 Q160 134 236 108"
+        android:strokeColor="@color/figure_dim"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
