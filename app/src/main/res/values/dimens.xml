@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 使い方のページ位置を示す点。 -->
+    <dimen name="manual_dot_size">8dp</dimen>
+    <dimen name="manual_dot_gap">10dp</dimen>
+</resources>

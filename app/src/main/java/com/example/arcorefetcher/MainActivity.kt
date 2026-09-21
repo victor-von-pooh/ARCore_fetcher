@@ -1,6 +1,7 @@
 package com.example.arcorefetcher
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
@@ -40,6 +41,7 @@ import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
 import com.google.ar.core.exceptions.CameraNotAvailableException
 import com.google.ar.core.exceptions.NotYetAvailableException
+import com.google.ar.core.exceptions.UnavailableApkTooOldException
 import com.google.ar.core.exceptions.UnavailableException
 import java.io.File
 import java.text.SimpleDateFormat
@@ -135,7 +137,9 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             if (finishing) return@setOnClickListener
             finishRequested.set(true)
         }
-        binding.helpButton.setOnClickListener { Dialogs.showManual(this) }
+        binding.helpButton.setOnClickListener {
+            startActivity(Intent(this, ManualActivity::class.java))
+        }
 
         onBackPressedDispatcher.addCallback(this, backGuard)
     }
@@ -285,6 +289,12 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
             this.session = session
             return true
+        } catch (e: UnavailableApkTooOldException) {
+            // 端末側の Google Play Services for AR が古い。端末が非対応なわけでは
+            // ないので、「対応していません」と言わず更新を促す。
+            Log.e(TAG, "Google Play Services for AR が古い", e)
+            toast(getString(R.string.msg_arcore_needs_update))
+            return false
         } catch (e: UnavailableException) {
             Log.e(TAG, "ARCore を利用できません", e)
             toast(getString(R.string.msg_arcore_unavailable))

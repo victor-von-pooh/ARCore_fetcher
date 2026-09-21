@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ページ位置の点。現在地かどうかは ManualActivity が alpha で表す。 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <solid android:color="@color/figure_ink" />
+    <size
+        android:width="8dp"
+        android:height="8dp" />
+</shape>

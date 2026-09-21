@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 使い方 1 ページ分。図 ＋ 見出し ＋ 本文。 -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipToPadding="false"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!--
+            図には文字を入れていない。意味はすべて下の本文が持っているので、
+            読み上げでは図を飛ばす。
+        -->
+        <ImageView
+            android:id="@+id/figure"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:maxHeight="230dp"
+            android:scaleType="fitCenter"
+            tools:src="@drawable/fig_what_is_recorded" />
+
+        <TextView
+            android:id="@+id/heading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorPrimary"
+            tools:text="何が記録されるか" />
+
+        <TextView
+            android:id="@+id/body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="24dp"
+            android:lineSpacingMultiplier="1.25"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            tools:text="写真を 1 枚撮るたびに、そのときのカメラの位置と向きを一緒に記録します。" />
+    </LinearLayout>
+</ScrollView>

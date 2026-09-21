@@ -11,21 +11,12 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 
 /**
- * タイトル画面と撮影画面が共有するダイアログ。
+ * 書き出したデータの取り出しダイアログ。
  *
- * どちらの画面からも同じ説明・同じ取り出し手段に行けるようにまとめてある。
+ * 撮影直後（[MainActivity]）と、保存済みデータの管理画面（[SavedCapturesActivity]）の
+ * 両方から同じものを開く。使い方は [ManualActivity] に分かれている。
  */
 object Dialogs {
-
-    /** 使い方。操作手順と、なぜ待たされるのかを説明する。 */
-    fun showManual(activity: Activity) {
-        val view = activity.layoutInflater.inflate(R.layout.dialog_manual, null)
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.manual_title)
-            .setView(view)
-            .setPositiveButton(R.string.action_close, null)
-            .show()
-    }
 
     /**
      * 書き出し完了。データの取り出し方を示す。

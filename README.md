@@ -136,6 +136,11 @@ intrinsics はセッション中不変なのでトップレベルに置き、
 7. 完了ダイアログの **端末に保存** か **共有して送る** でデータを取り出す
 
 操作説明はタイトル画面の **使い方**、撮影中は右上の **使い方** からいつでも開ける。
+全 8 ページで、1 ページにつき図が 1 枚。図は `tools/figures/` から生成している
+（`tools/figures/README.md`）。
+
+撮影中に開くと ARCore セッションは一度止まり、戻るとウォームアップからやり直しになる。
+トラッキングが切れた以上それが正しい挙動。
 
 ### 撮り方は用途で決まる
 
@@ -158,6 +163,7 @@ intrinsics はセッション中不変なのでトップレベルに置き、
 |---|---|
 | `TitleActivity` | 起動直後。撮影の開始・使い方・保存済みデータの 3 択。ARCore セッションは作らない |
 | `MainActivity` | 撮影。カメラ権限と ARCore のインストール要求はここで初めて出す |
+| `ManualActivity` | 使い方。図 1 枚につき 1 ページでめくって読む |
 | `SavedCapturesActivity` | 書き出し済みデータの取り出しと削除 |
 
 起動していきなりカメラを開かないのは、権限とインストールの要求を
@@ -296,9 +302,10 @@ JPEG エンコードとディスク書き込みは専用ワーカースレッド
 ```
 app/src/main/java/com/example/arcorefetcher/
 ├── TitleActivity.kt             # タイトル画面
+├── ManualActivity.kt            # 使い方（ページ送り）
 ├── MainActivity.kt              # ARCore セッション管理・シャッター処理
 ├── SavedCapturesActivity.kt     # 保存済みデータの取り出し・削除
-├── Dialogs.kt                   # 使い方・書き出し完了
+├── Dialogs.kt                   # 書き出し完了ダイアログ
 ├── SaveToDeviceLauncher.kt      # ACTION_CREATE_DOCUMENT の配線
 ├── capture/
 │   ├── CaptureModel.kt          # CaptureSpec / Intrinsics / CaptureMeta / PendingFrame
@@ -315,7 +322,21 @@ app/src/main/java/com/example/arcorefetcher/
 
 - Kotlin 2.0.21 / AGP 8.7.3 / Gradle 8.9
 - compileSdk 35 / minSdk 24 / targetSdk 35 / JVM 17
-- `com.google.ar:core:1.47.0`、androidx core-ktx / appcompat / material
+- `com.google.ar:core:1.47.0`、androidx core-ktx / appcompat / viewpager2 /
+  recyclerview / material
+
+### ビルドせずにできる検査
+
+```
+python3 tools/checks.py
+```
+
+リソース参照・ViewBinding のフィールド名・Activity の manifest 宣言・XML のパース・
+括弧の対応・関数呼び出しの引数の数を見る。**コンパイラの代わりにはならない**
+（型・null 安全・API の実在・`when` の網羅性は見ていない）ので、
+最後は必ず実機でビルドを通すこと。
+
+使い方ページの図の生成元は `tools/figures/`（`tools/figures/README.md`）。
 
 ## パッケージ名について
 

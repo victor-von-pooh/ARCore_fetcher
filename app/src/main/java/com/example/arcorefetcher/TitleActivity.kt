@@ -31,7 +31,9 @@ class TitleActivity : AppCompatActivity() {
         binding.startButton.setOnClickListener {
             startActivity(Intent(this, MainActivity::class.java))
         }
-        binding.manualButton.setOnClickListener { Dialogs.showManual(this) }
+        binding.manualButton.setOnClickListener {
+            startActivity(Intent(this, ManualActivity::class.java))
+        }
         binding.savedButton.setOnClickListener {
             startActivity(Intent(this, SavedCapturesActivity::class.java))
         }
