@@ -26,4 +26,11 @@
     <color name="coverage_empty">#1AE6E9EF</color>
     <color name="coverage_current">#FFF2C14E</color>
     <color name="coverage_grid">#40E6E9EF</color>
+
+    <!-- シャッター。カメラアプリと同じ白丸。 -->
+    <color name="shutter_ring">#CCFFFFFF</color>
+    <color name="shutter_disc">#FFFFFFFF</color>
+
+    <!-- 撮れたときに画面全体を一瞬光らせる色。 -->
+    <color name="capture_flash">#FFFFFFFF</color>
 </resources>

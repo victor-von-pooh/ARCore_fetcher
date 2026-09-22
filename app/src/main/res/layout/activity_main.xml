@@ -68,31 +68,45 @@
         android:contentDescription="@string/coverage_description"
         android:focusable="true" />
 
-    <LinearLayout
+    <!--
+        シャッターは画面の中央下。カメラアプリと同じ位置に置かないと、
+        構えたまま親指で押せない。書き出しは端へ逃がして誤爆を避ける。
+    -->
+    <FrameLayout
         android:id="@+id/controlBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="#99000000"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
 
-        <com.google.android.material.button.MaterialButton
+        <com.example.arcorefetcher.ShutterButton
             android:id="@+id/shutterButton"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="2"
-            android:text="@string/shutter" />
+            android:layout_width="@dimen/shutter_size"
+            android:layout_height="@dimen/shutter_size"
+            android:layout_gravity="center"
+            android:contentDescription="@string/shutter" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/finishButton"
             style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="16dp"
             android:text="@string/finish" />
-    </LinearLayout>
+    </FrameLayout>
+
+    <!--
+        撮れた瞬間に画面全体を一瞬光らせる面。**最前面に置く**（撮影ボタンごと光る）。
+        クリックを取らない素の View なので、光っている間もタッチは下へ抜ける。
+    -->
+    <View
+        android:id="@+id/flashView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="@color/capture_flash"
+        android:visibility="gone" />
 </FrameLayout>

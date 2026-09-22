@@ -3,4 +3,7 @@
     <!-- 使い方のページ位置を示す点。 -->
     <dimen name="manual_dot_size">8dp</dimen>
     <dimen name="manual_dot_gap">10dp</dimen>
+
+    <!-- シャッター。カメラアプリの標準的な大きさに合わせる。 -->
+    <dimen name="shutter_size">72dp</dimen>
 </resources>

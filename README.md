@@ -293,6 +293,25 @@ camera-to-world なので、そのまま掛ける）。
 `MainActivity` の上に重なる `CoverageView` は撮った画角のガイド（前述）で、
 表示専用。撮影にも出力にも影響しない。
 
+### 撮れたことを返す
+
+シャッターはカメラアプリと同じ白丸（`ShutterButton`）で、画面中央下に置く。
+構えたまま親指で押せる位置でないと、押すたびに端末が動いてトラッキングが乱れる。
+書き出しは端へ逃がして誤爆を避ける。
+
+合図は 2 段階に**分けてある**。
+
+| 合図 | いつ | 何を意味するか |
+|---|---|---|
+| 中の丸が縮む | 指を触れた瞬間 | ボタンを押せた |
+| 画面全体が一瞬光る | フレームを writer に預けた時点 | **撮れた** |
+
+押しても撮れないことがある（ウォームアップ前、CPU 画像がまだ来ていない）。
+この 2 つを 1 つの演出にまとめると、撮れていないのに撮れたと誤解させる。
+光るのは実際に保存が確定したときだけなので、**光らなければ撮れていない**。
+
+シャッター音は鳴らさない。撮影中の環境音を汚さないため、手触り（触覚）だけ返す。
+
 ## データを失わせない
 
 書き出した ZIP はアプリ内（`captures/`）に残り続ける。
@@ -433,6 +452,7 @@ JPEG エンコードとディスク書き込みは専用ワーカースレッド
 | intrinsics は実際に保存した画像の解像度に対応（リサイズ時は同率スケール） | `MainActivity.intrinsicsFor()` |
 | pose は撮影時に確定させず、フレームごとの Anchor から終了直前に回収 | 上記「座標とドリフト補正」 |
 | 深度の intrinsics は `getTextureIntrinsics()` 由来で、JPEG 用とは別物 | 上記「深度は JPEG と画角が違う」。`MainActivity.depthOf` |
+| 発光は押下ではなく**保存確定**で出す（押しても撮れないことがある） | 上記「撮れたことを返す」。`MainActivity.flashCaptured()` |
 | VIO 収束前はシャッターを無効にする（`tracking_state` では判定できない） | `MainActivity.updateWarmup()` |
 | `TRACKING` 以外のフレームも捨てずに記録 | `captureFrame()` は trackingState で弾かない |
 | ファイル名は `timestamp_ns` の 18 桁ゼロ埋め | `CaptureSessionWriter.writeFrame()` |
@@ -450,6 +470,7 @@ app/src/main/java/com/example/arcorefetcher/
 ├── MainActivity.kt              # ARCore セッション管理・シャッター処理
 ├── SavedCapturesActivity.kt     # 保存済みデータの取り出し・削除
 ├── Dialogs.kt                   # 書き出し完了ダイアログ
+├── ShutterButton.kt             # 白丸のシャッター（押下で中の丸が縮む）
 ├── SaveToDeviceLauncher.kt      # ACTION_CREATE_DOCUMENT の配線
 ├── capture/
 │   ├── CaptureModel.kt          # CaptureSpec / Intrinsics / CaptureMeta / PendingFrame
@@ -546,6 +567,12 @@ python3 tools/checks.py
   - 動くとセルの縁取りが追従するか、1 枚撮ると扇形が埋まるか
   - リングのタップで中心を取り直せるか、撮影済みの扇形が残るか
   - ガイドを出したままでも描画が重くならないか（中心の固定後は深度を読まない）
+- **シャッターの見た目と発光は実機未検証。** 描画は同じ比率で再現して確認した。
+  次の撮影で確認すること:
+  - 白丸が構えたまま親指で届く位置にあるか、書き出しを誤爆しないか
+  - 押下で中の丸が縮むか、ウォームアップ前は暗いままか
+  - **撮れたときだけ光るか**（ウォームアップ前に押しても光らないこと）
+  - 発光が明るすぎないか、暗い場所で眩しくないか
 - Gradle Wrapper の JAR (`gradle/wrapper/gradle-wrapper.jar`) を含めていない。
   Android Studio が自動生成するが、失敗したら `gradle wrapper --gradle-version 8.9` で用意する
 

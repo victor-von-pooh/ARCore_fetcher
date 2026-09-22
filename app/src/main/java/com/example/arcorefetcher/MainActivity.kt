@@ -9,6 +9,7 @@ import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
@@ -534,6 +535,36 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         binding.shutterButton.isEnabled = warmedUp && !finishing
     }
 
+    /**
+     * 撮れた合図。画面全体を一瞬光らせる。
+     *
+     * **押した瞬間ではなく、実際にフレームを預けられたときに呼ぶ。** 押しても撮れない
+     * ことがある（ウォームアップ前、CPU 画像がまだ来ていない）ので、押下の手応えと
+     * 撮影成功を同じ演出にまとめると、撮れていないのに撮れたと誤解させる。
+     * 押した手応えはシャッター自身が中の丸を縮めて返す（[ShutterButton]）。
+     */
+    private fun flashCaptured() {
+        val flash = binding.flashView
+        flash.animate().cancel()
+        flash.alpha = 0f
+        flash.visibility = View.VISIBLE
+        // 立ち上がりは速く、戻りはゆっくり。一瞬で消えると撮れたか分からない。
+        flash.animate()
+            .alpha(FLASH_PEAK_ALPHA)
+            .setDuration(FLASH_IN_MS)
+            .withEndAction {
+                flash.animate()
+                    .alpha(0f)
+                    .setDuration(FLASH_OUT_MS)
+                    .withEndAction { flash.visibility = View.GONE }
+                    .start()
+            }
+            .start()
+
+        // 手触りだけ返す。シャッター音は鳴らさない（撮影中の環境音を汚さないため）。
+        binding.shutterButton.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+    }
+
     // ------------------------------------------------------------------
     // 撮った視点方向のガイド（表示専用。出力には影響しない）
     // ------------------------------------------------------------------
@@ -685,6 +716,9 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             coverage.addCapture(cameraPosition)
             pushCoverage()
         }
+
+        // ここまで来たフレームは writer に預かられている。撮れた合図はこの時点で出す。
+        runOnUiThread { flashCaptured() }
     }
 
     /**
@@ -972,6 +1006,11 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
         /** 入切できるボタンを「切」に見せるための不透明度。 */
         const val DISABLED_ALPHA = 0.5f
+
+        /** 撮れたときの発光。白飛びさせず、撮れたと分かる程度に留める。 */
+        const val FLASH_PEAK_ALPHA = 0.85f
+        const val FLASH_IN_MS = 45L
+        const val FLASH_OUT_MS = 220L
         const val REQUEST_CAMERA = 1001
         const val AR_CORE_PACKAGE = "com.google.ar.core"
 
