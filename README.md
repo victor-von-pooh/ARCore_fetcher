@@ -192,10 +192,19 @@ ARCore の深度は GPU テクスチャ側の画角に揃っている。一方�
 深度画素 `(u, v)` の値 `d`（mm）をカメラ座標に戻すには、`depth` ブロックの値を使って
 
 ```
-z = d / 1000                       # メートルへ
-x = (u - cx) * z / fl_x
-y = (v - cy) * z / fl_y            # camera_axes は +Y up / -Z forward
+t = d / 1000                       # メートルへ
+x =  (u - cx) * t / fl_x
+y = -(v - cy) * t / fl_y           # 画像の v は下向き、camera は +Y up なので反転
+z = -t                             # camera は -Z 方向を向いているので負
 ```
+
+**符号を落とさないこと。** `camera_axes` は OpenGL 系（+Y up / -Z forward）だが、
+画像座標の `v` は下向きで、深度 `d` は正の距離として入っている。この 2 つの反転を
+省くと、点群は上下反転して前後も裏返る。実機データで確かめたところ、
+符号を省いた場合のフレーム間の食い違いは 1.33 m、正しく入れると 52 mm だった。
+
+あとは `transform_matrix` を掛ければ world 座標になる（`transform_direction` は
+camera-to-world なので、そのまま掛ける）。
 
 深度の精度は 0.5〜15 m あたりが最良で、それより近い/遠いところは信用しない。
 `AUTOMATIC` の平滑済み深度は**全画素を埋めてくる**ので、推定で埋めた値と実測値の
@@ -469,15 +478,24 @@ python3 tools/checks.py
     または視線の最小二乗交点への再投影で確認する）
   - `origin_refreshed_at_end` が `true` のままか
   - 撮影ボタンが 3 秒 + 15 cm の条件で有効になるか
-- **深度の保存は実機未検証。** PNG エンコーダは値域・CRC・走査線を独立に
-  デコードして検証したが、ARCore から実際の深度が来る経路は通していない。
-  次の撮影で確認すること:
-  - `capture.depth_mode` が `AUTOMATIC` になるか（対応端末の場合）
-  - `depth` / `raw_depth` / `confidence` の 3 つが揃うか、解像度が一致するか
-  - `depth` ブロックの `w` / `h` が PNG の実寸と一致するか
-  - 深度を `depth` ブロックの intrinsics で逆投影した点群が、複数フレームで
-    重なるか（重ならなければ `aligned_to` の前提か姿勢のどちらかが疑わしい）
-  - 深度取得のぶんシャッターの応答が落ちていないか
+- **深度の保存は実機で確認済み**（Pixel 8 / ARCore 1.56）。
+  `depth_mode` は `AUTOMATIC` が選ばれ、`depth` / `raw_depth` / `confidence` の
+  3 つが 160x90 でそろった。PNG は全チャンクの CRC が通り、深度の段差は
+  JPEG の輪郭と位置ずれ 0 px で一致する（輪郭の相関 0.59）。
+  逆投影した点群はフレーム間で 52 mm（中央値）まで一致した。
+  - **この端末では深度が JPEG と同じ画角だった。** CPU 画像 1920x1080 に対し
+    `textureIntrinsics` が `imageIntrinsics` と一致し、`depth` ブロックの
+    `fl_x` / `fl_y` / `cx` / `cy` はきっちり 1/12 になった。つまり深度画素
+    `(u, v)` は JPEG 画素 `(12u, 12v)` に対応する。
+    **ただしこれは端末依存で、一致は保証されない。**
+    `aligned_to` を読まずに JPEG 側の intrinsics を流用してはいけない
+  - 深度の解像度は 160x90。ドキュメントの言う 160x120 ではなく、
+    画面のアスペクト比（16:9）に従う
+  - `AUTOMATIC` の平滑済み深度は有効画素 100%。raw は 89〜99.5% で、
+    最大 35.6 m と信頼できる範囲（25 m）を超える値も入る。足切りは下流で行う
+  - 残差 52 mm は信頼度の足切りをいくら上げても 49 mm までしか下がらない。
+    ノイズではなく深度推定の系統誤差か姿勢誤差が主因で、さらに詰めるなら
+    そちらを疑う
 - Gradle Wrapper の JAR (`gradle/wrapper/gradle-wrapper.jar`) を含めていない。
   Android Studio が自動生成するが、失敗したら `gradle wrapper --gradle-version 8.9` で用意する
 
