@@ -34,8 +34,18 @@ class CoverageView @JvmOverloads constructor(
     }
     private val label = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
-        textSize = dp(11f)
+        textSize = dp(12f)
         isFakeBoldText = true
+    }
+
+    /**
+     * 帯の名前。扇形の上に乗るので、影を敷かないと埋まった帯の上で読めなくなる。
+     */
+    private val bandLabel = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        textSize = dp(9f)
+        isFakeBoldText = true
+        setShadowLayer(dp(2f), 0f, 0f, 0xFF000000.toInt())
     }
 
     private val outer = RectF()
@@ -104,6 +114,16 @@ class CoverageView @JvmOverloads constructor(
                     canvas.drawPath(path, stroke)
                 }
             }
+
+            // 帯が何を表すかを書いておく。同心円が 3 本あるだけでは、
+            // どれが「上から」でどれが「下から」なのか伝わらない。
+            bandLabel.color = colorInk
+            canvas.drawText(
+                context.getString(BAND_LABELS[band]),
+                cx - (rOut + rIn) / 2f,
+                cy + bandLabel.textSize / 3f,
+                bandLabel,
+            )
         }
 
         drawCenterLabel(canvas, cx, cy, snap)
@@ -152,5 +172,15 @@ class CoverageView @JvmOverloads constructor(
 
         /** 隣り合う扇形のあいだに空ける角度 [度]。境界を見せるためだけのもの。 */
         const val SECTOR_GAP_DEG = 0.8f
+
+        /**
+         * 帯の名前。添字は [ViewCoverage.BAND_LOWER_DEG] の帯番号と対応する。
+         * 帯の切り方を変えるならここも直すこと。
+         */
+        val BAND_LABELS = intArrayOf(
+            R.string.coverage_band_below,   // band 0: 見上げ（外側）
+            R.string.coverage_band_level,   // band 1: 水平
+            R.string.coverage_band_above,   // band 2: 見下ろし（内側）
+        )
     }
 }

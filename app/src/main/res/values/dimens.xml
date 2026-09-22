@@ -6,4 +6,10 @@
 
     <!-- シャッター。カメラアプリの標準的な大きさに合わせる。 -->
     <dimen name="shutter_size">72dp</dimen>
+
+    <!-- 撮った画角のリング。36 セルを読ませるにはこれ以上小さくできない。 -->
+    <dimen name="coverage_size">150dp</dimen>
+
+    <!-- リングとステータスバーのあいだ。 -->
+    <dimen name="coverage_top_gap">10dp</dimen>
 </resources>

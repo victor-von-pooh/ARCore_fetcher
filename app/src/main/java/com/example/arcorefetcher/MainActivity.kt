@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.HapticFeedbackConstants
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +19,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.example.arcorefetcher.capture.CaptureMeta
 import com.example.arcorefetcher.capture.CaptureSessionWriter
@@ -251,6 +253,17 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             binding.statusBar.updatePadding(top = statusBasePadding + bars.top)
             binding.controlBar.updatePadding(bottom = controlBasePadding + bars.bottom)
             insets
+        }
+
+        // リングはステータスバーの**実測の下端**に合わせる。XML で余白を決め打つと、
+        // システムバーのインセットぶんステータスバーが伸びたときに重なる
+        // （端末ごとにインセットが違うので、定数では合わせられない）。
+        val gap = resources.getDimensionPixelSize(R.dimen.coverage_top_gap)
+        binding.statusBar.addOnLayoutChangeListener { _, _, _, _, bottom, _, _, _, oldBottom ->
+            if (bottom == oldBottom) return@addOnLayoutChangeListener
+            binding.coverageView.updateLayoutParams<FrameLayout.LayoutParams> {
+                topMargin = bottom + gap
+            }
         }
     }
 

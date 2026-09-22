@@ -56,13 +56,15 @@
     <!--
         撮った視点方向のリング。カメラ映像の上に重ねるだけで、撮影にも出力にも
         影響しない。タップすると被写体の中心を取り直す。
+
+        上端の余白は MainActivity が statusBar の実測高から入れる。ここで決め打つと、
+        システムバーのインセットぶん statusBar が伸びたときに重なる。
     -->
     <com.example.arcorefetcher.coverage.CoverageView
         android:id="@+id/coverageView"
-        android:layout_width="132dp"
-        android:layout_height="132dp"
+        android:layout_width="@dimen/coverage_size"
+        android:layout_height="@dimen/coverage_size"
         android:layout_gravity="top|end"
-        android:layout_marginTop="72dp"
         android:layout_marginEnd="12dp"
         android:clickable="true"
         android:contentDescription="@string/coverage_description"

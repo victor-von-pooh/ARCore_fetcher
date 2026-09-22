@@ -105,6 +105,10 @@
     <string name="coverage_aim">被写体を中央に</string>
     <string name="coverage_unlocked">仮</string>
     <string name="coverage_description">撮った視点方向。埋まっていない扇形がまだ撮っていない画角</string>
+    <!-- リングの帯。外側から順に、被写体を見上げた / 水平 / 見下ろした視点。 -->
+    <string name="coverage_band_below">下</string>
+    <string name="coverage_band_level">横</string>
+    <string name="coverage_band_above">上</string>
     <string name="msg_coverage_retaken">被写体の中心を取り直しました</string>
     <string name="msg_coverage_no_depth">この端末は深度に対応していないため、ガイドは使えません</string>
 </resources>
