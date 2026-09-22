@@ -99,4 +99,12 @@
     <string name="manual_p8_body">書き出したデータはアプリ内に残ります。ダイアログを閉じたあとでも、タイトル画面の「保存済みデータ」から取り出し直せます。\n\nただし 1 回の撮影で、ZIP と展開済みフォルダの両方が残ります。容量は約 2 倍です。\n\nいらなくなったら「保存済みデータ」から削除してください。1 件ずつ、チェックで複数選択、すべて選択のいずれでも消せます。削除は取り消せません。</string>
 
     <string name="share_title">撮影データを共有</string>
+
+    <!-- カバレッジ表示（撮り方の助言であって仕様ではない。消せるようにしてある）。 -->
+    <string name="coverage_toggle">ガイド</string>
+    <string name="coverage_aim">被写体を中央に</string>
+    <string name="coverage_unlocked">仮</string>
+    <string name="coverage_description">撮った視点方向。埋まっていない扇形がまだ撮っていない画角</string>
+    <string name="msg_coverage_retaken">被写体の中心を取り直しました</string>
+    <string name="msg_coverage_no_depth">この端末は深度に対応していないため、ガイドは使えません</string>
 </resources>

@@ -51,6 +51,22 @@ object PoseMath {
         return FloatArray(4) { (q[it] / n).toFloat() }
     }
 
+    /**
+     * camera 座標の点を world 座標へ移す。
+     *
+     * transforms.json が宣言している規約（camera-to-world の行優先行列）を
+     * そのまま使う。深度から被写体の位置を出す経路もここを通るので、
+     * 宣言と実際の計算がずれていれば画面上で破綻して気づける。
+     */
+    fun transformToWorld(pose: Pose, x: Float, y: Float, z: Float): FloatArray {
+        val m = toRowMajorMatrix(pose)
+        return floatArrayOf(
+            m[0][0] * x + m[0][1] * y + m[0][2] * z + m[0][3],
+            m[1][0] * x + m[1][1] * y + m[1][2] * z + m[1][3],
+            m[2][0] * x + m[2][1] * y + m[2][2] * z + m[2][3],
+        )
+    }
+
     /** 2 つの pose の平行移動成分の距離 [m]。ウォームアップ判定の移動量に使う。 */
     fun distance(a: Pose, b: Pose): Float {
         val dx = a.tx() - b.tx()

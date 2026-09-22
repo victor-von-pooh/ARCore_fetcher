@@ -12,4 +12,18 @@
     <color name="figure_good">#7FD1A0</color>
     <color name="figure_bad">#F2857F</color>
     <color name="figure_surface">#2A3442</color>
+
+    <!--
+        カバレッジのリング。カメラ映像の上に重ねるので、背景を暗く敷いたうえで
+        「埋まった／まだ」の差が一目で付く明度差を取る。
+    -->
+    <color name="coverage_backdrop">#A61B2430</color>
+    <color name="coverage_covered">#CC7FD1A0</color>
+    <!--
+        「まだ」と区切り線は背景より**明るく**する。背景を暗く敷いてあるので、
+        暗い色を重ねても境界が見えない。
+    -->
+    <color name="coverage_empty">#1AE6E9EF</color>
+    <color name="coverage_current">#FFF2C14E</color>
+    <color name="coverage_grid">#40E6E9EF</color>
 </resources>

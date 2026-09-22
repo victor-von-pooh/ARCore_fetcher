@@ -44,6 +44,43 @@ object DepthImages {
     }
 
     /**
+     * 画像中央付近の深度の中央値と、その画像の解像度。有効な画素が無ければ null。
+     *
+     * 被写体の距離を測るためだけのものなので、全画素をコピーせず中央の窓だけ読む。
+     * 1 画素だと穴とノイズに弱いので中央値を取る。
+     */
+    fun centerSample(image: Image, boxFraction: Float = 0.2f): CenterSample? {
+        val width = image.width
+        val height = image.height
+        val plane = image.planes[0]
+        val buf = plane.buffer.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+        val rowStride = plane.rowStride
+        val pixelStride = plane.pixelStride.orDefault(2)
+        val limit = buf.limit()
+
+        val halfW = (width * boxFraction / 2f).toInt().coerceAtLeast(1)
+        val halfH = (height * boxFraction / 2f).toInt().coerceAtLeast(1)
+        val values = IntArray((halfW * 2 + 1) * (halfH * 2 + 1))
+        var n = 0
+        for (r in (height / 2 - halfH)..(height / 2 + halfH)) {
+            if (r < 0 || r >= height) continue
+            val base = r * rowStride
+            for (c in (width / 2 - halfW)..(width / 2 + halfW)) {
+                if (c < 0 || c >= width) continue
+                val pos = base + c * pixelStride
+                if (pos + 2 > limit) continue
+                // 深度は符号なし 16bit。0 は「深度なし」なので中央値に混ぜない。
+                val mm = buf.getShort(pos).toInt() and 0xFFFF
+                if (mm > 0) values[n++] = mm
+            }
+        }
+        if (n == 0) return null
+        val head = values.copyOf(n)
+        head.sort()
+        return CenterSample(head[n / 2], width, height)
+    }
+
+    /**
      * rowStride / pixelStride を踏んで 1 画素ずつ渡す。
      *
      * [YuvJpeg] の平面コピーと同じ事情で、rowStride > width の端末があるため
@@ -74,3 +111,10 @@ object DepthImages {
     /** pixelStride を 0 で返す実装があるので、フォーマットの既定値に倒す。 */
     private fun Int.orDefault(fallback: Int): Int = if (this > 0) this else fallback
 }
+
+/** [DepthImages.centerSample] の結果。深度画像の解像度も返すのは intrinsics を作るため。 */
+class CenterSample(
+    val millimeters: Int,
+    val width: Int,
+    val height: Int,
+)

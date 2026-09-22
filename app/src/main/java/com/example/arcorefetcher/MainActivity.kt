@@ -9,6 +9,7 @@ import android.opengl.GLSurfaceView
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
@@ -21,6 +22,7 @@ import com.example.arcorefetcher.capture.CaptureMeta
 import com.example.arcorefetcher.capture.CaptureSessionWriter
 import com.example.arcorefetcher.capture.CaptureSpec
 import com.example.arcorefetcher.capture.CaptureStore
+import com.example.arcorefetcher.capture.CenterSample
 import com.example.arcorefetcher.capture.ConfidenceMap
 import com.example.arcorefetcher.capture.DepthCapture
 import com.example.arcorefetcher.capture.DepthImages
@@ -31,6 +33,7 @@ import com.example.arcorefetcher.capture.PendingFrame
 import com.example.arcorefetcher.capture.PoseMath
 import com.example.arcorefetcher.capture.WriteResult
 import com.example.arcorefetcher.capture.YuvJpeg
+import com.example.arcorefetcher.coverage.ViewCoverage
 import com.example.arcorefetcher.databinding.ActivityMainBinding
 import com.example.arcorefetcher.render.BackgroundRenderer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -92,6 +95,26 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
     /** UI スレッド → GL スレッドの依頼。 */
     private val captureRequested = AtomicBoolean(false)
     private val finishRequested = AtomicBoolean(false)
+    private val retakeCenterRequested = AtomicBoolean(false)
+
+    /**
+     * 撮った視点方向のガイド。**出力には影響しない**表示専用の機構。
+     *
+     * 物体を中心に周回して撮る用途を前提にした助言なので、用途が違えば邪魔になる。
+     * [guideEnabled] で切れるようにしてあり、切っている間は GL スレッドで
+     * 一切計算しない。
+     */
+    private val coverage = ViewCoverage()
+
+    /** UI スレッドが書き、GL スレッドが読む。 */
+    @Volatile
+    private var guideEnabled = true
+
+    /** 被写体中心の推定を間引くためのフレーム数え。固定後は深度を読まない。 */
+    private var centerSampleTick = 0
+
+    /** 毎フレーム使う一時バッファ。描画ループで確保を増やさないため。 */
+    private val cameraPosition = FloatArray(3)
 
     /** Activity が STARTED になる前に登録する必要があるのでフィールドで持つ。 */
     private val saveToDevice = SaveToDeviceLauncher(this)
@@ -164,6 +187,16 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         binding.helpButton.setOnClickListener {
             startActivity(Intent(this, ManualActivity::class.java))
         }
+        binding.guideButton.setOnClickListener { setGuideEnabled(!guideEnabled) }
+        // 背景の深度を拾っていたときの逃げ道。撮り直しではないので撮影済みは失わない。
+        binding.coverageView.setOnClickListener {
+            if (depthMode == Config.DepthMode.DISABLED) {
+                toast(getString(R.string.msg_coverage_no_depth))
+                return@setOnClickListener
+            }
+            retakeCenterRequested.set(true)
+        }
+        setGuideEnabled(guideEnabled)
 
         onBackPressedDispatcher.addCallback(this, backGuard)
     }
@@ -313,6 +346,13 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             config.depthMode = depthMode
             session.configure(config)
 
+            // session を代入した瞬間に GL スレッドが描画を始め、ガイドも触り出す。
+            // ガイドの初期化は必ずその前に済ませる。
+            coverage.reset()
+            binding.coverageView.update(null)
+            // 深度が無ければガイドは成り立たない。ボタンごと畳んで期待させない。
+            applyGuideAvailability()
+
             this.session = session
             return true
         } catch (e: UnavailableApkTooOldException) {
@@ -408,6 +448,7 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
         val camera = frame.camera
         updateWarmup(frame, camera)
+        updateCoverage(frame, camera)
 
         if (captureRequested.getAndSet(false)) {
             runCatching { captureFrame(session, frame, camera) }
@@ -493,6 +534,87 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         binding.shutterButton.isEnabled = warmedUp && !finishing
     }
 
+    // ------------------------------------------------------------------
+    // 撮った視点方向のガイド（表示専用。出力には影響しない）
+    // ------------------------------------------------------------------
+
+    /**
+     * 被写体中心を追いながら、いま向いているセルを更新する。
+     *
+     * 中心が固定される前だけ深度を読む。固定後（最初の 1 枚を撮ったあと）は
+     * カメラ位置の計算しか走らないので、描画ループへの負荷はほぼ無い。
+     */
+    private fun updateCoverage(frame: Frame, camera: Camera) {
+        if (!guideEnabled || depthMode == Config.DepthMode.DISABLED) return
+        if (camera.trackingState != TrackingState.TRACKING) return
+
+        var changed = false
+
+        if (retakeCenterRequested.getAndSet(false)) {
+            subjectCenterFrom(frame, camera)?.let {
+                coverage.retake(it)
+                changed = true
+                runOnUiThread { toast(getString(R.string.msg_coverage_retaken)) }
+            }
+        }
+
+        // 固定前は画面中央の深度で中心を追う。毎フレーム読む必要は無いので間引く。
+        if (!coverage.isLocked && centerSampleTick++ % CENTER_SAMPLE_INTERVAL == 0) {
+            subjectCenterFrom(frame, camera)?.let {
+                coverage.observeCenter(it)
+                changed = true
+            }
+        }
+
+        camera.pose.getTranslation(cameraPosition, 0)
+        if (coverage.updateCurrent(cameraPosition)) changed = true
+
+        if (changed) pushCoverage()
+    }
+
+    /**
+     * 画面中央が指している点の world 座標。深度が取れなければ null。
+     *
+     * プレビューは中央を保ったまま切り取られるので、**画面中央は深度画像の
+     * 幾何中心**に対応する。principal point とは限らないので、そこは intrinsics で
+     * きちんと戻す。逆投影の符号は README「深度は JPEG と画角が違う」の式と同じで、
+     * 落とすと点が上下・前後に裏返る。
+     */
+    private fun subjectCenterFrom(frame: Frame, camera: Camera): FloatArray? {
+        val acquire: () -> Image = if (depthMode == Config.DepthMode.AUTOMATIC) {
+            { frame.acquireDepthImage16Bits() }
+        } else {
+            { frame.acquireRawDepthImage16Bits() }
+        }
+        val sample: CenterSample = withImage("深度 (中心)", acquire) {
+            DepthImages.centerSample(it)
+        } ?: return null
+
+        val k = intrinsicsFor(camera.textureIntrinsics, sample.width, sample.height)
+        val t = sample.millimeters / 1000f
+        val x = (sample.width / 2f - k.cx) * t / k.flX
+        val y = -(sample.height / 2f - k.cy) * t / k.flY
+        return PoseMath.transformToWorld(camera.pose, x, y, -t)
+    }
+
+    private fun pushCoverage() {
+        val snap = coverage.snapshot()
+        runOnUiThread { binding.coverageView.update(snap) }
+    }
+
+    private fun setGuideEnabled(value: Boolean) {
+        guideEnabled = value
+        binding.guideButton.alpha = if (value) 1f else DISABLED_ALPHA
+        applyGuideAvailability()
+    }
+
+    /** 深度非対応ならガイドは成り立たないので、表示ごと畳む。 */
+    private fun applyGuideAvailability() {
+        val available = depthMode != Config.DepthMode.DISABLED
+        binding.coverageView.visibility = if (guideEnabled && available) View.VISIBLE else View.GONE
+        binding.guideButton.isEnabled = available
+    }
+
     private fun captureFrame(session: Session, frame: Frame, camera: Camera) {
         // ボタンは無効にしてあるが、無効化が届く前のタップが残りうる。
         if (!warmedUp || camera.trackingState != TrackingState.TRACKING) {
@@ -555,6 +677,14 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
                 depth = depthOf(frame, camera),
             )
         )
+
+        // ガイドのセルを埋める。ここで中心も固定される（撮り始めたあとに中心が
+        // 動くと、それまでに埋めたセルの意味が変わってしまうため）。
+        if (guideEnabled && depthMode != Config.DepthMode.DISABLED) {
+            camera.pose.getTranslation(cameraPosition, 0)
+            coverage.addCapture(cameraPosition)
+            pushCoverage()
+        }
     }
 
     /**
@@ -836,6 +966,12 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
 
     private companion object {
         const val TAG = "ARCoreFetcher"
+
+        /** 被写体中心を測り直すフレーム間隔。中心が固定される前しか走らない。 */
+        const val CENTER_SAMPLE_INTERVAL = 3
+
+        /** 入切できるボタンを「切」に見せるための不透明度。 */
+        const val DISABLED_ALPHA = 0.5f
         const val REQUEST_CAMERA = 1001
         const val AR_CORE_PACKAGE = "com.google.ar.core"
 

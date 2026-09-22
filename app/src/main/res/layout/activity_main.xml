@@ -29,6 +29,17 @@
             android:textSize="14sp"
             tools:text="0 枚（TRACKING 0）" />
 
+        <!-- カバレッジ表示の入切。用途が違う人には無意味なので消せる。 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/guideButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="@string/coverage_toggle" />
+
         <!-- 撮影中にも手順を読み返せるようにする。 -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/helpButton"
@@ -41,6 +52,21 @@
             android:paddingEnd="12dp"
             android:text="@string/help" />
     </LinearLayout>
+
+    <!--
+        撮った視点方向のリング。カメラ映像の上に重ねるだけで、撮影にも出力にも
+        影響しない。タップすると被写体の中心を取り直す。
+    -->
+    <com.example.arcorefetcher.coverage.CoverageView
+        android:id="@+id/coverageView"
+        android:layout_width="132dp"
+        android:layout_height="132dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="72dp"
+        android:layout_marginEnd="12dp"
+        android:clickable="true"
+        android:contentDescription="@string/coverage_description"
+        android:focusable="true" />
 
     <LinearLayout
         android:id="@+id/controlBar"
