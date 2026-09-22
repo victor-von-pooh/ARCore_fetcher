@@ -112,8 +112,7 @@ class CoverageView @JvmOverloads constructor(
     /** 扇形（ドーナツの一片）を [path] に組む。 */
     private fun buildSector(start: Float, sweep: Float) {
         path.reset()
-        // 隣の扇形と 1 度ずつ空けて、境界が見えるようにする。
-        val gap = 0.8f
+        val gap = SECTOR_GAP_DEG
         path.arcTo(outer, start + gap / 2f, sweep - gap, true)
         path.arcTo(inner, start + sweep - gap / 2f, -(sweep - gap), false)
         path.close()
@@ -141,4 +140,17 @@ class CoverageView @JvmOverloads constructor(
 
     private fun color(id: Int): Int = ContextCompat.getColor(context, id)
     private fun dp(v: Float): Float = v * resources.displayMetrics.density
+
+    private companion object {
+        /**
+         * 中央の空き（半径に対する比）。
+         *
+         * 扇形を中心まで伸ばすと、内側ほど細くなって色が読めない。
+         * 空けたぶんは「何 / 何」の表示に使う。
+         */
+        const val HOLE_RATIO = 0.34f
+
+        /** 隣り合う扇形のあいだに空ける角度 [度]。境界を見せるためだけのもの。 */
+        const val SECTOR_GAP_DEG = 0.8f
+    }
 }

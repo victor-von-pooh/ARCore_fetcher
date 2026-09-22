@@ -502,8 +502,8 @@ python3 tools/checks.py
 ```
 
 リソース参照・ViewBinding のフィールド名・Activity の manifest 宣言・XML のパース・
-括弧の対応・関数呼び出しの引数の数を見る。**コンパイラの代わりにはならない**
-（型・null 安全・API の実在・`when` の網羅性は見ていない）ので、
+括弧の対応・関数呼び出しの引数の数・定数の実在を見る。**コンパイラの代わりには
+ならない**（型・null 安全・API の実在・`when` の網羅性は見ていない）ので、
 最後は必ず実機でビルドを通すこと。
 
 使い方ページの図の生成元は `tools/figures/`（`tools/figures/README.md`）。

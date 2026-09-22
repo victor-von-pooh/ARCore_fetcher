@@ -15,7 +15,8 @@
   4. XML                 res 配下すべてがパースできるか
   5. 括弧の対応          Kotlin の { } ( ) が閉じているか
   6. 呼び出しの引数      tools/callcheck.py に委譲
-  7. 未使用の string     （警告のみ。消し忘れの手がかり）
+  7. 定数の実在          SCREAMING_SNAKE の参照先がそのファイルにあるか
+  8. 未使用の string     （警告のみ。消し忘れの手がかり）
 """
 import pathlib
 import re
@@ -55,6 +56,41 @@ def ids_of(layout):
         if v.startswith("@+id/"):
             out.add(v[5:])
     return out
+
+
+def strip_noise(text):
+    """コメントと文字列リテラルを落とす。識別子の検査を邪魔するため。"""
+    text = re.sub(r"//[^\n]*", "", text)
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    text = re.sub(r'"""(?:.|\n)*?"""', '""', text)
+    text = re.sub(r"'(?:\\.|[^'\\\n])'", "''", text)
+    text = re.sub(r'"(?:\\.|[^"\\\n])*"', '""', text)
+    return text
+
+
+# SCREAMING_SNAKE の定数。3 文字以上に限って型名や 1 文字の変数を巻き込まない。
+CONST_RE = re.compile(r"(?<![.\w@])([A-Z][A-Z0-9_]{2,})\b")
+DECL_RE = re.compile(r"\b(?:const\s+)?va[lr]\s+([A-Z][A-Z0-9_]{2,})\b")
+
+
+def undefined_constants(path):
+    """
+    修飾なしで使われている定数が、そのファイルで定義も import もされていない箇所。
+
+    JDK が無い環境ではコンパイラが使えず、`HOLE_RATIO` のような書き忘れが
+    実機ビルドまで見つからない。そこだけでも機械的に見る。
+
+    **型検査ではない。** 同じファイルに名前があれば通すので、型違いや
+    スコープ違いは拾えない。
+    """
+    text = path.read_text()
+    imported = set(re.findall(r"^import\s+[\w.]*?([A-Z][A-Z0-9_]{2,})\s*$", text, re.M))
+    body = strip_noise(text)
+    declared = set(DECL_RE.findall(body))
+    # enum の定義（`FOO,` だけの行）と when の分岐ラベルも定義側として扱う。
+    declared |= set(re.findall(r"^\s*([A-Z][A-Z0-9_]{2,})\s*(?:,|\()", body, re.M))
+    return sorted({n for n in CONST_RE.findall(body)
+                   if n not in declared and n not in imported})
 
 
 def main():
@@ -119,7 +155,12 @@ def main():
             if t.count(o) != t.count(c):
                 problems.append(f"{f.name}: {o}{c} の数が合わない ({t.count(o)} / {t.count(c)})")
 
-    # 7. 未使用の string（警告）
+    # 7. 定数の実在
+    for f in kt:
+        for name in undefined_constants(f):
+            problems.append(f"{f.name}: {name} がこのファイルに無い（import も無い）")
+
+    # 8. 未使用の string（警告）
     used = set()
     for f in kt + xmls:
         t = f.read_text()
@@ -133,7 +174,8 @@ def main():
     if problems:
         print("\n".join(problems))
     else:
-        print(f"Kotlin {len(kt)} / XML {len(xmls)} — リソース・binding・manifest・括弧: 問題なし")
+        print(f"Kotlin {len(kt)} / XML {len(xmls)} — "
+              "リソース・binding・manifest・括弧・定数: 問題なし")
 
     # 6. 呼び出しの引数
     rc = subprocess.call([sys.executable, str(ROOT / "tools/callcheck.py")])

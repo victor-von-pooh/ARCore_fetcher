@@ -1,6 +1,7 @@
 package com.example.arcorefetcher.coverage
 
 import kotlin.math.asin
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.sqrt
 
@@ -166,7 +167,7 @@ class ViewCoverage {
         private const val MIN_RADIUS_M = 0.15f
 
         private const val CENTER_SMOOTHING = 0.2f
-        private const val TWO_PI = 2.0 * Math.PI
+        private const val TWO_PI = 2.0 * PI
     }
 }
 
