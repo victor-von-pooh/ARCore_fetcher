@@ -38,6 +38,7 @@ import com.example.arcorefetcher.capture.WriteResult
 import com.example.arcorefetcher.capture.YuvJpeg
 import com.example.arcorefetcher.coverage.ViewCoverage
 import com.example.arcorefetcher.databinding.ActivityMainBinding
+import com.example.arcorefetcher.pointcloud.PointCloudBuilder
 import com.example.arcorefetcher.render.BackgroundRenderer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.ar.core.Anchor
@@ -128,6 +129,12 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
      */
     @Volatile
     private var writer: CaptureSessionWriter? = null
+
+    /**
+     * 撮ったフレームの深度から点群を作る。writer と同じく 1 撮影セッションに 1 つで、
+     * 深度に非対応の端末では作らない。GL スレッドからのみ触る。
+     */
+    private var pointCloud: PointCloudBuilder? = null
 
     /**
      * 撮影 1 枚につき 1 つ張る Anchor。添字が [PendingFrame.anchorIndex] になる。
@@ -304,6 +311,8 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         // Session の close も GL スレッドが触らなくなってから。
         // 書き出さずに終了した場合はここが Anchor の最後の解放機会。
         detachFrameAnchors()
+        pointCloud?.close()
+        pointCloud = null
         session?.close()
         session = null
         super.onDestroy()
@@ -493,6 +502,12 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         }.onFailure {
             Log.e(TAG, "writer を作成できません", it)
         }.getOrNull()
+        pointCloud?.close()
+        pointCloud = if (writer != null && depthMode != Config.DepthMode.DISABLED) {
+            PointCloudBuilder()
+        } else {
+            null
+        }
         lastStatus = null
         return writer
     }
@@ -705,22 +720,23 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
         }
 
         // TRACKING 以外も捨てずに記録する。選別は撮影後に行う。
-        writer.submitFrame(
-            PendingFrame(
-                timestampNs = frame.timestamp,
-                nv21 = nv21,
-                imageWidth = width,
-                imageHeight = height,
-                anchorIndex = anchorIndex,
-                poseAtCapture = cameraPose,
-                trackingState = CaptureSpec.trackingStateOf(camera.trackingState.name),
-                trackingFailureReason = CaptureSpec.failureReasonOf(camera.trackingFailureReason.name),
-                intrinsics = intrinsicsFor(camera.imageIntrinsics, width, height),
-                trackingElapsedNs = warmupElapsedNs,
-                pointCount = pointCountOf(frame),
-                depth = depthOf(frame, camera),
-            )
+        val pending = PendingFrame(
+            timestampNs = frame.timestamp,
+            nv21 = nv21,
+            imageWidth = width,
+            imageHeight = height,
+            anchorIndex = anchorIndex,
+            poseAtCapture = cameraPose,
+            trackingState = CaptureSpec.trackingStateOf(camera.trackingState.name),
+            trackingFailureReason = CaptureSpec.failureReasonOf(camera.trackingFailureReason.name),
+            intrinsics = intrinsicsFor(camera.imageIntrinsics, width, height),
+            trackingElapsedNs = warmupElapsedNs,
+            pointCount = pointCountOf(frame),
+            depth = depthOf(frame, camera),
         )
+        writer.submitFrame(pending)
+        // 同じ NV21 と深度から点を作る。どちらのスレッドも配列を読むだけ。
+        pointCloud?.add(pending)
 
         // ガイドのセルを埋める。ここで中心も固定される（撮り始めたあとに中心が
         // 動くと、それまでに埋めたセルの意味が変わってしまうため）。
@@ -900,7 +916,12 @@ class MainActivity : AppCompatActivity(), GLSurfaceView.Renderer {
             binding.statusText.text = getString(R.string.msg_writing)
         }
 
-        writer.finish(refreshed) { result ->
+        // 点群も同じフレームで読んだ姿勢で world に移す。transforms.json と
+        // 座標系を揃えるため。切り出しにはガイドが固定した被写体中心を使う。
+        val cloud = pointCloud?.finish(refreshed, coverage.lockedCenter())
+        pointCloud = null
+
+        writer.finish(refreshed, cloud) { result ->
             runOnUiThread { onWriteComplete(result) }
         }
 

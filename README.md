@@ -41,7 +41,8 @@ capture_20260920T103104/
 │   ├── 000000812345678901.png
 │   └── ...
 ├── raw_depth/                   # 平滑前の深度。同上
-└── confidence/                  # raw_depth の画素ごとの信頼度 (8bit PNG)
+├── confidence/                  # raw_depth の画素ごとの信頼度 (8bit PNG)
+└── points.ply                   # 深度から作った点群。同上
 ```
 
 ファイル名は `timestamp_ns` の 18 桁ゼロ埋め。連番はフレーム欠損で破綻するので使わない。
@@ -210,6 +211,55 @@ camera-to-world なので、そのまま掛ける）。
 `AUTOMATIC` の平滑済み深度は**全画素を埋めてくる**ので、推定で埋めた値と実測値の
 区別がつかない。区別が要るなら `raw_depth` と `confidence` を見る。
 
+### 点群（省略可能）
+
+端末が Depth API に対応していれば、撮ったフレームの深度を重ねた点群を
+`points.ply` として書き出し、`transforms.json` の `point_cloud` ブロックから参照する。
+
+```json
+"point_cloud": {
+  "file_path": "points.ply",
+  "source": "arcore_depth_fusion",
+  "depth_source": "raw_depth",
+  "min_confidence": 128,
+  "pixel_stride": 2,
+  "voxel_size": 0.01,
+  "crop": {"type": "sphere", "center": [0.1, 0.9, -0.6], "radius": 0.75},
+  "frame_count": 34,
+  "point_count": 81234
+}
+```
+
+**これは MVS ではない。** ARCore の深度を各フレームの姿勢で world に移して重ねただけで、
+画像同士の照合はしていない。精度は深度に縛られ、表面は数 cm の厚みを持つ
+（実機でフレーム間の食い違いが約 5 cm）。細部を取るためのものではなく、
+おおよその形と色を初期点群として渡すためのもの。精度が要るなら、
+画像と姿勢から下流で作り直すこと。
+
+座標はフレームの `transform_matrix` と**同じ world 座標**で、
+`coordinate_convention` に従う（メートル、+Y が上）。姿勢も同じものを使う。
+点はフレームごとにカメラ座標のまま持っておき、書き出す直前に Anchor から読み直した
+姿勢で world に移す（「座標とドリフト補正が肝」）。撮影時点で world に固めると、
+点群だけが ARCore の遡及補正から取り残され、画像の姿勢と食い違う。
+
+作り方は次のとおりで、値はすべて `point_cloud` ブロックに書いてある。
+
+| 段階 | 内容 |
+|---|---|
+| 深度 | `raw_depth` を信頼度 `min_confidence` 以上で使う。平滑済み深度は推定で全画素を埋めてくるので使わない |
+| 間引き | 深度画素を `pixel_stride` おきに使う |
+| 色 | 深度の intrinsics で 3 次元に戻し、JPEG の intrinsics で投影し直して取る。JPEG の画角の外に落ちた点は捨てる |
+| 切り出し | ガイドの被写体中心があればその周りの球（`sphere`）、無ければカメラからの距離（`max_depth`） |
+| まとめ | 一辺 `voxel_size` のボクセルごとに位置と色を平均する |
+
+PLY は binary_little_endian で、頂点は `x y z`（float）・`red green blue`（uchar）・
+`count`（uint, そのボクセルに入った点の数）。`count` が 1 の点は 1 フレームで
+1 回しか見えていない点で、外れ値を含みやすい。撮影側では足切りしないので、
+使うかどうかは `count` を見て下流が決める。
+
+点が 1 つも残らなかったセッションでは、PLY も `point_cloud` ブロックも出さない。
+点群を作れなくても、画像と姿勢の書き出しは止めない。
+
 ## 使い方
 
 1. アプリを起動する。タイトル画面が出る（カメラはまだ開かない）
@@ -288,7 +338,8 @@ camera-to-world なので、そのまま掛ける）。
 被写体の形を持たず、中心 1 点からの方向しか見ていないので、凹んだ部分や
 取っ手の裏は、セルが埋まっていても写っていないことがある。
 
-面まで見るには粗くても形状が要る。深度を溜めてボクセルに落とせばできるが、
+面まで見るには粗くても形状が要る。深度を溜めてボクセルに落とせばできるが
+（書き出しの点群はまさにそれで作っている）、
 それは実質的に点群の生成であり、撮影中に走らせる処理としては別物になる。
 
 細長い対象（棚・車）でも、中心 1 点という前提が合わないので目安にならない。
@@ -466,6 +517,7 @@ JPEG エンコードとディスク書き込みは専用ワーカースレッド
 | quaternion は `(x,y,z,w)` 順のまま出力（`wxyz` へ並べ替えない） | `PoseMath.quaternionXyzw()` |
 | intrinsics は実際に保存した画像の解像度に対応（リサイズ時は同率スケール） | `MainActivity.intrinsicsFor()` |
 | pose は撮影時に確定させず、フレームごとの Anchor から終了直前に回収 | 上記「座標とドリフト補正」 |
+| 点群はカメラ座標で持ち、書き出し直前の姿勢で world に移す（撮影時点で固めない） | 上記「点群」。`PointCloudBuilder.finish()` |
 | 深度の intrinsics は `getTextureIntrinsics()` 由来で、JPEG 用とは別物 | 上記「深度は JPEG と画角が違う」。`MainActivity.depthOf` |
 | 発光は押下ではなく**保存確定**で出す（押しても撮れないことがある） | 上記「撮れたことを返す」。`MainActivity.flashCaptured()` |
 | 仰角の帯は水平を中心に切る（片側に寄せると 1 本しか埋まらない） | 上記「撮った画角のガイド」。`ViewCoverage.BAND_LOWER_DEG` |
@@ -499,6 +551,12 @@ app/src/main/java/com/example/arcorefetcher/
 │   ├── DepthImages.kt           # DEPTH16 / Y8 → mm・信頼度の配列
 │   ├── Png.kt                   # 16bit / 8bit グレースケール PNG
 │   └── Zip.kt
+├── pointcloud/                  # 深度から作る点群（省略可能な出力）
+│   ├── PointCloud.kt            # PointCloudSpec / Crop / CameraPoints / PointCloud
+│   ├── DepthUnprojector.kt      # 深度 → カメラ座標の点、JPEG から色
+│   ├── VoxelGrid.kt             # ボクセルごとの平均
+│   ├── PointCloudBuilder.kt     # フレームの点を保持し、書き出し時に world へ移す
+│   └── PlyWriter.kt             # binary PLY
 ├── coverage/                    # 撮り方の助言。出力には一切関与しない
 │   ├── ViewCoverage.kt          # 視点方向のビン・被写体中心の保持
 │   └── CoverageView.kt          # 極座標リングの描画
@@ -588,6 +646,13 @@ python3 tools/checks.py
   - 動くとセルの縁取りが追従するか、1 枚撮ると扇形が埋まるか
   - リングのタップで中心を取り直せるか、撮影済みの扇形が残るか
   - ガイドを出したままでも描画が重くならないか（中心の固定後は深度を読まない）
+- **点群の書き出しは実機未検証**（撮影中の表示はまだ無い）。
+  次の撮影で確認すること:
+  - `points.ply` が出て、`transforms.json` の `point_cloud` から参照されているか
+  - 点群を画像の姿勢と重ねたとき、被写体の位置と色が合っているか
+    （上下や前後が裏返っていないか）
+  - 被写体が球で切り出され、背景が落ちているか
+  - 書き出しにかかる時間が目立って延びていないか
 - **シャッターの見た目と発光は実機未検証。** 描画は同じ比率で再現して確認した。
   次の撮影で確認すること:
   - 白丸が構えたまま親指で届く位置にあるか、書き出しを誤爆しないか

@@ -1,10 +1,15 @@
 package com.example.arcorefetcher.capture
 
 import android.util.Log
+import com.example.arcorefetcher.pointcloud.PlyWriter
+import com.example.arcorefetcher.pointcloud.PointCloud
+import com.example.arcorefetcher.pointcloud.PointCloudSpec
 import com.google.ar.core.Pose
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.Future
 import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -18,7 +23,7 @@ class CaptureSessionWriter(
     outputRoot: File,
     private val meta: CaptureMeta,
 ) {
-    /** 出力レイアウト: capture_<stamp>/{transforms.json, images/, depth/, raw_depth/, confidence/} */
+    /** 出力レイアウト: capture_<stamp>/{transforms.json, points.ply, images/, depth/, raw_depth/, confidence/} */
     val sessionDir: File = File(outputRoot, "capture_${meta.sessionId.dirStamp()}")
     private val imagesDir = File(sessionDir, IMAGES_DIR)
 
@@ -70,12 +75,18 @@ class CaptureSessionWriter(
      *
      * @param refreshedPoses セッション終了直前に各フレームの Anchor から読み直した pose。
      *   添字は [PendingFrame.anchorIndex]。読み直せなかった要素は null。
+     * @param pointCloud 同じ姿勢で作った点群。深度に非対応なら null。
+     *   ZIP に入れるため、出来上がるまでここで待つ。
      * @param onDone ワーカースレッドから呼ばれる。成功なら [WriteResult]、失敗なら例外。
      */
-    fun finish(refreshedPoses: List<Pose?>, onDone: (Result<WriteResult>) -> Unit) {
+    fun finish(
+        refreshedPoses: List<Pose?>,
+        pointCloud: Future<PointCloud>?,
+        onDone: (Result<WriteResult>) -> Unit,
+    ) {
         if (closed) return
         closed = true
-        queue.put(Task.Finish(refreshedPoses, onDone))
+        queue.put(Task.Finish(refreshedPoses, pointCloud, onDone))
     }
 
     private fun runLoop() {
@@ -84,7 +95,7 @@ class CaptureSessionWriter(
                 is Task.Write -> runCatching { writeFrame(task.frame) }
                     .onFailure { Log.e(TAG, "フレームの書き出しに失敗", it) }
                 is Task.Finish -> {
-                    task.onDone(runCatching { finalizeSession(task.refreshedPoses) })
+                    task.onDone(runCatching { finalizeSession(task.refreshedPoses, task.pointCloud) })
                     return
                 }
             }
@@ -170,7 +181,7 @@ class CaptureSessionWriter(
         return dir
     }
 
-    private fun finalizeSession(refreshedPoses: List<Pose?>): WriteResult {
+    private fun finalizeSession(refreshedPoses: List<Pose?>, pointCloud: Future<PointCloud>?): WriteResult {
         if (written.isEmpty()) throw IllegalStateException("フレームが 1 枚もありません")
 
         // frames は timestamp_ns 昇順で並べる。
@@ -186,8 +197,12 @@ class CaptureSessionWriter(
         }
         val effectiveMeta = meta.copy(originRefreshedAtEnd = unrefreshed == 0)
 
+        // 点群は省略可能な追加物。作れなくても画像と姿勢の書き出しは止めない。
+        val cloud = pointCloud?.let { awaitPointCloud(it) }?.takeIf { it.size > 0 }
+        val writtenCloud = cloud?.takeIf { writePly(it) }
+
         val json = TransformsJson.build(
-            effectiveMeta, intrinsics, baseDepthIntrinsics, written, refreshedPoses,
+            effectiveMeta, intrinsics, baseDepthIntrinsics, written, refreshedPoses, writtenCloud,
         )
         File(sessionDir, "transforms.json").writeText(json, Charsets.UTF_8)
 
@@ -195,9 +210,29 @@ class CaptureSessionWriter(
         return WriteResult(zip, written.size, unrefreshed)
     }
 
+    private fun awaitPointCloud(future: Future<PointCloud>): PointCloud? =
+        runCatching { future.get(POINT_CLOUD_TIMEOUT_SEC, TimeUnit.SECONDS) }
+            .onFailure { Log.e(TAG, "点群を作れませんでした", it) }
+            .getOrNull()
+
+    /** PLY を書く。失敗したら書きかけを消して false（transforms.json から参照させない）。 */
+    private fun writePly(cloud: PointCloud): Boolean {
+        val file = File(sessionDir, PointCloudSpec.FILE_NAME)
+        return runCatching {
+            FileOutputStream(file).buffered().use { PlyWriter.write(cloud, it) }
+        }.onFailure {
+            Log.e(TAG, "点群の書き出しに失敗", it)
+            file.delete()
+        }.isSuccess
+    }
+
     private sealed class Task {
         class Write(val frame: PendingFrame) : Task()
-        class Finish(val refreshedPoses: List<Pose?>, val onDone: (Result<WriteResult>) -> Unit) : Task()
+        class Finish(
+            val refreshedPoses: List<Pose?>,
+            val pointCloud: Future<PointCloud>?,
+            val onDone: (Result<WriteResult>) -> Unit,
+        ) : Task()
     }
 
     companion object {
@@ -206,6 +241,9 @@ class CaptureSessionWriter(
         private const val DEPTH_DIR = "depth"
         private const val RAW_DEPTH_DIR = "raw_depth"
         private const val CONFIDENCE_DIR = "confidence"
+
+        /** 点群ができるのを待つ上限。百万点規模でも数秒で終わるので、十分に長く取る。 */
+        private const val POINT_CLOUD_TIMEOUT_SEC = 60L
 
         /** session_id `20260920T103104+0900` からディレクトリ名用の `20260920T103104` を取る。 */
         private fun String.dirStamp(): String =

@@ -14,8 +14,8 @@ object CaptureSpec {
     /**
      * 出力ファイルに書き込む形式識別子。破壊的変更のとき major を上げる。
      *
-     * `tracking_elapsed_ns` / `point_count` / `depth`・`depth_file_path` 一式は
-     * **省略可能な追加項目**なので、これらを足しても既存の読み手は壊れない。
+     * `tracking_elapsed_ns` / `point_count` / `depth`・`depth_file_path` 一式 /
+     * `point_cloud` は**省略可能な追加項目**なので、これらを足しても既存の読み手は壊れない。
      * よって識別子は据え置く。
      */
     const val SPEC_VERSION = "arcore-fetcher/capture/1.0"
