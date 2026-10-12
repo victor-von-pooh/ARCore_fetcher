@@ -51,6 +51,9 @@ class ViewCoverage {
     val hasCenter: Boolean get() = center != null
     val isLocked: Boolean get() = locked
 
+    /** 固定済みの被写体中心のコピー。固定前なら null。点群の切り出しに使う。 */
+    fun lockedCenter(): FloatArray? = if (locked) center?.copyOf() else null
+
     /**
      * 画面中央の深度から得た点で中心を追従させる。固定後は何もしない。
      *

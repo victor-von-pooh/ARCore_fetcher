@@ -1,5 +1,8 @@
 package com.example.arcorefetcher.capture
 
+import com.example.arcorefetcher.pointcloud.Crop
+import com.example.arcorefetcher.pointcloud.PointCloud
+import com.example.arcorefetcher.pointcloud.PointCloudSpec
 import com.google.ar.core.Pose
 import java.util.Locale
 
@@ -17,6 +20,7 @@ object TransformsJson {
      *   添字は [WrittenFrame.anchorIndex]。ここに入っているのが ARCore の遡及補正を
      *   反映した world 姿勢で、これが本来の出力値。読み直せなかったフレームだけ
      *   [WrittenFrame.poseAtCapture] へ退避する。
+     * @param pointCloud 書き出し済みの点群。無ければ `point_cloud` ブロックごと省く。
      */
     fun build(
         meta: CaptureMeta,
@@ -24,6 +28,7 @@ object TransformsJson {
         depthIntrinsics: Intrinsics?,
         frames: List<WrittenFrame>,
         refreshedPoses: List<Pose?>,
+        pointCloud: PointCloud?,
     ): String {
         val sb = StringBuilder(1024 + frames.size * 512)
         sb.append("{\n")
@@ -39,6 +44,12 @@ object TransformsJson {
         // 出ているときは必ず全キーそろう（読み手が分岐を持たなくて済む）。
         depthIntrinsics?.let {
             appendDepth(sb, it)
+            sb.append("\n")
+        }
+
+        // 点群が無いセッション（深度非対応・点が 1 つも残らなかった）ではブロックごと省く。
+        pointCloud?.let {
+            appendPointCloud(sb, it)
             sb.append("\n")
         }
 
@@ -120,6 +131,45 @@ object TransformsJson {
         // appendIntrinsics は末尾にカンマを置くので、最後のキーをここで閉じる。
         sb.setLength(sb.length - 2)
         sb.append("\n  },\n")
+    }
+
+    /**
+     * 点群の在処と作り方。
+     *
+     * 座標は frames の transform_matrix と同じ world 座標で、`coordinate_convention` に従う。
+     * **MVS ではなく深度を重ねたもの**なので、作り方（使った深度・足切り・ボクセル・
+     * 切り出し）を全部書き、下流が自分の用途に足るかを判断できるようにする。
+     */
+    private fun appendPointCloud(sb: StringBuilder, it: PointCloud) {
+        sb.append("  ").append(str("point_cloud")).append(": {\n")
+        sb.append("    ").append(str("file_path")).append(": ")
+            .append(str(PointCloudSpec.FILE_NAME)).append(",\n")
+        sb.append("    ").append(str("source")).append(": ")
+            .append(str(PointCloudSpec.SOURCE)).append(",\n")
+        sb.append("    ").append(str("depth_source")).append(": ")
+            .append(str(PointCloudSpec.DEPTH_SOURCE)).append(",\n")
+        sb.append("    ").append(str("min_confidence")).append(": ")
+            .append(PointCloudSpec.MIN_CONFIDENCE).append(",\n")
+        sb.append("    ").append(str("pixel_stride")).append(": ")
+            .append(PointCloudSpec.PIXEL_STRIDE).append(",\n")
+        sb.append("    ").append(str("voxel_size")).append(": ")
+            .append(num(PointCloudSpec.VOXEL_SIZE_M)).append(",\n")
+        when (val crop = it.crop) {
+            is Crop.Sphere -> {
+                sb.append("    ").append(str("crop")).append(": {")
+                    .append(str("type")).append(": ").append(str("sphere")).append(", ")
+                    .append(str("center")).append(": ").append(floatArray(crop.center)).append(", ")
+                    .append(str("radius")).append(": ").append(num(crop.radiusM)).append("},\n")
+            }
+            is Crop.MaxDepth -> {
+                sb.append("    ").append(str("crop")).append(": {")
+                    .append(str("type")).append(": ").append(str("max_depth")).append(", ")
+                    .append(str("max_depth")).append(": ").append(num(crop.maxDepthM)).append("},\n")
+            }
+        }
+        sb.append("    ").append(str("frame_count")).append(": ").append(it.frameCount).append(",\n")
+        sb.append("    ").append(str("point_count")).append(": ").append(it.size).append("\n")
+        sb.append("  },\n")
     }
 
     private fun appendFrame(sb: StringBuilder, frame: WrittenFrame, refreshedPoses: List<Pose?>) {
